@@ -109,7 +109,7 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
     // Обновление потягиванием (4.52): стандартный жест списков Android.
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
     // Плавные переходы (4.55): сдвиг «список ↔ переписка» (MaterialSharedAxis работает поверх androidx.transition).
     implementation("androidx.transition:transition:1.6.0")
     // Картинки реакций VK — SVG (отчёт 4.62: «46 шт., формат svg»); Android сам SVG не рисует (4.63).
