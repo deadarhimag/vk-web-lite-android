@@ -106,7 +106,7 @@ dependencies {
     implementation("dev.ffmpegkit-maintained:ffmpeg-kit-audio:8.1.9")
     implementation("androidx.appcompat:appcompat:1.8.0")
     implementation("androidx.preference:preference-ktx:1.2.1")
-    implementation("com.google.android.material:material:1.12.0")
+    implementation("com.google.android.material:material:1.14.0")
     implementation("androidx.recyclerview:recyclerview:1.4.0")
     // Обновление потягиванием (4.52): стандартный жест списков Android.
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0")
