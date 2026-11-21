@@ -103,7 +103,7 @@ class DialogsAdapter(
             val text = android.text.SpannableStringBuilder(label).append(' ').append(DraftMap.preview(draft))
             text.setSpan(
                 android.text.style.ForegroundColorSpan(
-                    com.google.android.material.color.MaterialColors.getColor(snippet, com.google.android.material.R.attr.colorError),
+                    com.google.android.material.color.MaterialColors.getColor(snippet, androidx.appcompat.R.attr.colorError),
                 ),
                 0, label.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
             )
