@@ -1043,6 +1043,9 @@ function tapPage(url = 'https://m.vk.ru/audio') {
     window.XMLHttpRequest = function () { this.l = { load: [], error: [] }; this.status = 0; this.responseType = ''; this.responseText = ''; };
     XMLHttpRequest.prototype.open = function (m, u) { this.u = u; };
     XMLHttpRequest.prototype.addEventListener = function (t, f) { this.l[t].push(f); };
+    XMLHttpRequest.prototype.getResponseHeader = function (name) {
+      return name.toLowerCase() === 'content-type' ? 'application/json' : null;
+    };
     XMLHttpRequest.prototype.send = function () { var self = this; setTimeout(function () { self.status = window.__xhrStatus || 200; self.responseText = window.__xhrBody || '{}'; self.l.load.forEach(function (f) { f.call(self); }); }, 0); };
     window.WebSocket = function (u) { this.u = u; this.l = { message: [], error: [] }; window.__socket = this; };
     WebSocket.prototype.addEventListener = function (t, f) { this.l[t].push(f); };
@@ -2121,6 +2124,9 @@ test('клипы: «release» возвращает звук роликам, ко
   assert.strictEqual(w.__vkLite.clips('more'), true);
   await wait(80);
   assert.strictEqual(w.__vkLite.clips('more'), true, 'после ответа без ленты продолжение снова можно просить');
+  // Обработать второй ответ fetch и изменения DOM, пока документ ещё доступен.
+  w.document.body.replaceChildren();
+  await new Promise((resolve) => setImmediate(resolve));
   w.close();
 });
 
@@ -3093,7 +3099,14 @@ test('окно чтения: голосовое — сервер загрузк�
   const send = w.requests.find((r) => r.url.includes('messages.send'));
   const body = new URLSearchParams(send.body);
   assert.deepStrictEqual([body.get('peer_id'), body.get('random_id'), body.get('attachment')], ['5', '4242', 'doc5_77_k1']);
-  assert.deepStrictEqual(w.sentToApp.filter((m) => m.type === 'voiceSent').pop(), { type: 'voiceSent', ok: true, reason: '' });
+  assert.deepStrictEqual(w.sentToApp.filter((m) => m.type === 'voiceSent').pop(), {
+    type: 'voiceSent',
+    ok: true,
+    reason: '',
+    uncertain: false,
+    operation: 'legacy-1',
+    documentId: '5_77',
+  });
 });
 
 test('окно чтения: голосовое — чужой адрес загрузки не используется (4.59)', async () => {
