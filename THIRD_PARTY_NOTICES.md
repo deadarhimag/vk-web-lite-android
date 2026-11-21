@@ -6,8 +6,8 @@
 | --- | --- |
 | Kotlin 2.0.21 и Gradle Wrapper 8.7 | Apache 2.0. [Kotlin](https://github.com/JetBrains/kotlin/blob/v2.0.21/license/LICENSE.txt), [Gradle](https://github.com/gradle/gradle/blob/v8.7.0/LICENSE) |
 | AndroidX (Core, Activity, WebKit, AppCompat, Preference, RecyclerView, SwipeRefreshLayout и Transition) и Media3 1.5.1 | Apache 2.0. [AndroidX](https://github.com/androidx/androidx), [Media3](https://github.com/androidx/media) |
-| Material Components 1.12.0 и AndroidSVG 1.4 | Apache 2.0. [Material Components](https://github.com/material-components/material-components-android/blob/1.12.0/LICENSE), [AndroidSVG](https://github.com/BigBadaboom/androidsvg/blob/master/LICENSE) |
-| JUnit 4.13.2, JSON-java 20240303 и jsdom 24.1.3 | Тестовые зависимости. [JUnit 4 (EPL 1.0)](https://github.com/junit-team/junit4/blob/r4.13.2/LICENSE-junit.txt), [JSON-java (Public Domain)](https://github.com/stleary/JSON-java/blob/20240303/LICENSE), [jsdom (MIT)](https://github.com/jsdom/jsdom/blob/v24.1.3/LICENSE.txt) |
+| Material Components 1.14.0 и AndroidSVG 1.4 | Apache 2.0. [Material Components](https://github.com/material-components/material-components-android/blob/1.14.0/LICENSE), [AndroidSVG](https://github.com/BigBadaboom/androidsvg/blob/master/LICENSE) |
+| JUnit 4.13.2, JSON-java 20260814 и jsdom 24.1.3 | Тестовые зависимости. [JUnit 4 (EPL 1.0)](https://github.com/junit-team/junit4/blob/r4.13.2/LICENSE-junit.txt), [JSON-java (Public Domain)](https://github.com/stleary/JSON-java/blob/20260814/LICENSE), [jsdom (MIT)](https://github.com/jsdom/jsdom/blob/v24.1.3/LICENSE.txt) |
 
 ## Material Icons и Material Symbols
 
