@@ -36,9 +36,9 @@ jobs:
           java-version: "17"
 
       # Версия Gradle — из обёртки (gradle/wrapper/gradle-wrapper.properties, 4.1): та же, что в Android Studio.
-      - uses: gradle/actions/wrapper-validation@v4
+      - uses: gradle/actions/wrapper-validation@v6
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # Загрузка через сайт GitHub не сохраняет признак «исполняемый».
       - name: Make gradlew executable
