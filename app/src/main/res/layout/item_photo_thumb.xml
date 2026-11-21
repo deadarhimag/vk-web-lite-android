@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Фото в сетке альбома: квадрат, нажатие открывает просмотр. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="2dp">
+
+    <com.example.vkweb.ui.AspectImageView
+        android:id="@+id/photo_thumb"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurfaceContainerHigh"
+        android:contentDescription="@string/photos_photo"
+        android:foreground="?attr/selectableItemBackground"
+        android:scaleType="centerCrop" />
+</FrameLayout>

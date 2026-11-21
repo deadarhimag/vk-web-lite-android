@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Видео во вложении сообщения: обложка, значок воспроизведения, название и длительность. Нажатие открывает видео. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="240dp"
+    android:layout_height="135dp"
+    android:background="@drawable/photo_placeholder"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <ImageView
+        android:id="@+id/video_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+
+    <ImageView
+        android:id="@+id/video_play"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:background="@drawable/photo_counter_bg"
+        android:importantForAccessibility="no"
+        android:padding="10dp"
+        android:src="@drawable/ic_player_play" />
+
+    <TextView
+        android:id="@+id/video_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/photo_counter_bg"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="4dp"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/media_on" />
+
+    <TextView
+        android:id="@+id/video_duration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="6dp"
+        android:background="@drawable/photo_counter_bg"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="@color/media_on" />
+</FrameLayout>

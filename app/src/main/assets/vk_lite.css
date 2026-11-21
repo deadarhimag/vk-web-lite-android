@@ -1,0 +1,26 @@
+/*
+ * Скрытие лишних блоков на страницах VK.
+ * Вёрстка VK меняется: актуальные селекторы ищите через chrome://inspect → Inspect.
+ */
+[id^="ads_"],
+.ads_ad_box,
+.AdsBlock,
+[class*="PromoBanner"],
+[class*="AppBanner"],
+[class*="promo_"],
+[data-ad],
+[data-ad-view],
+[class*="ads_block"],
+[class*="AdsFeed"],
+.mfoot {
+  display: none !important;
+}
+
+/*
+ * Строка поиска в шапке VK прячется везде, кроме «Рекомендаций и поиска» (/discover…): там поиск — главное, что есть.
+ * Признак html[data-vklite-page] ставит скрипт (assets/vk_lite/30_shell.js) по первому сегменту пути.
+ */
+html:not([data-vklite-page^="discover"]) .HeaderSearch,
+html:not([data-vklite-page^="discover"]) .ui_search_new {
+  display: none !important;
+}

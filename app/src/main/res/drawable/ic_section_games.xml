@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Игры: геймпад — крестовина и две кнопки. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="?attr/colorControlNormal"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M5,7h14a4,4 0,0 1,4 4v2a4,4 0,0 1,-4 4H5a4,4 0,0 1,-4 -4v-2a4,4 0,0 1,4 -4zM7.2,9.5h1.6v1.7h1.7v1.6H8.8v1.7H7.2v-1.7H5.5v-1.6h1.7zM15.5,10.8a1.2,1.2 0,1 0,0 2.4a1.2,1.2 0,1 0,0 -2.4zM19,10.8a1.2,1.2 0,1 0,0 2.4a1.2,1.2 0,1 0,0 -2.4z" />
+</vector>

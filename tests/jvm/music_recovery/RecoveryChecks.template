@@ -1,0 +1,220 @@
+import com.example.vkweb.media.*
+import com.example.vkweb.config.SafeUrls
+import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
+import android.webkit.WebView
+
+// Controlled boundaries for the actual cache() method and Job observer implementation.
+class Scheduler : Executor {
+    private val tasks = ArrayDeque<Runnable>()
+    override fun execute(command: Runnable) { tasks.addLast(command) }
+    fun post(run: () -> Unit) { tasks.addLast(Runnable(run)) }
+    fun drain() { repeat(100) { if (tasks.isEmpty()) return; tasks.removeFirst().run() }; error("unbounded scheduling") }
+}
+object MusicCache {
+    var generation = 1L
+    val stored = HashSet<String>()
+    fun currentGeneration() = generation
+    fun isCached(id: String) = id in stored
+}
+object MusicCacheService { fun ensureRunning(app: Any) {} }
+object MusicDownloadStarter {
+    var onFinish: ((MusicDownload) -> Unit)? = null
+    var cancellation = 0L
+    fun cancellationGeneration() = cancellation
+    fun recoveryIsCurrent(cache: Long, cancel: Long) = MusicRecovery.isCurrent(cache, cancel, MusicCache.generation, cancellation)
+    fun finishRecovery(download: MusicDownload, failed: Boolean = false) { onFinish?.invoke(download) }
+}
+object MusicCacheWorker {
+    data class Request(val download: MusicDownload, val batch: CacheBatch?)
+    var pending = 0
+    val requests = ArrayList<Request>()
+    var beforeRecover: (() -> Unit)? = null
+    fun recover(app: Any, download: MusicDownload, batch: CacheBatch?) {
+        beforeRecover?.invoke(); pending++; requests += Request(download, batch)
+    }
+}
+enum class LogTag { MEDIA }
+object AppLog {
+    fun i(tag: LogTag, message: String, vararg fields: Pair<String, Any?>) {}
+    fun w(tag: LogTag, message: String, vararg fields: Pair<String, Any?>) {}
+    fun e(tag: LogTag, message: String, error: Throwable) {}
+}
+object DashAudioPlan { class Failure(val reason: String) : IllegalStateException() }
+class CacheHarness(val response: (MusicDownload) -> Unit) {
+    val app = Any()
+    val MAIN = Scheduler()
+    val CACHE = Scheduler()
+    val CACHE_JOBS = HashSet<String>()
+    val FAILED = HashMap<String, Int>()
+    val REFRESHING = java.util.concurrent.ConcurrentHashMap<String, Triple<Long, Long, Long>>()
+    val RECOVERY_SEQUENCE = AtomicLong()
+    val CANCELLED = AtomicLong()
+    val QUEUED = AtomicInteger()
+    val SAVED = AtomicInteger()
+    val MP3_UNAVAILABLE = AtomicBoolean()
+    val MAX_CACHE_ATTEMPTS = 2
+    var cleanups = 0
+    var fetches = 0
+    inner class TempFiles { fun deleteAll() { cleanups++ } }
+    class Fetched(val source: String = "stub-audio")
+    class Mp3Unavailable : IllegalStateException()
+    fun fetchMp3(download: MusicDownload, temp: TempFiles): Fetched { fetches++; response(download); return Fetched() }
+    fun publishToCache(download: MusicDownload, fetched: Fetched, generation: Long, temp: TempFiles): Boolean {
+        if (generation != MusicCache.generation) return false
+        MusicCache.stored += download.id; return true
+    }
+    fun notifyProgress() {}
+    fun recoveryIsCurrent(generation: Long, cancellation: Long) = MusicRecovery.isCurrent(generation, cancellation, MusicCache.generation, CANCELLED.get())
+    /*FINISH_RECOVERY_METHOD*/
+    /*CACHE_METHOD*/
+}
+object JobChecks {
+    /*JOB_CLASS*/
+    fun run(): Int {
+        fun observer() = CacheBatch(1) {}
+        val track = MusicTrack("1_2", "title", "artist", 10, "")
+        val a = observer(); val b = observer(); val job = Job(track, MusicRecovery.DEFAULT_PAGE, a)
+        job.follow(b); job.batch.onSaved(); job.batch.onFailed()
+        check(a.saved == 1 && b.saved == 1 && a.failed == 0 && b.failed == 0)
+        println("PASS joined lookup observers finish once after actual outcome")
+        val c = observer(); job.follow(c); check(c.saved == 1)
+        println("PASS late lookup observer receives the established outcome")
+        val x = observer(); val y = observer(); val failed = Job(track, MusicRecovery.DEFAULT_PAGE, x)
+        failed.follow(y); failed.batch.onCancelled(); failed.batch.onSaved()
+        check(x.cancelled == 1 && y.cancelled == 1 && x.saved == 0)
+        println("PASS cancellation of shared lookup cannot later become success")
+        var released = 0
+        MusicDownloadStarter.onFinish = { released++ }
+        val lookup = Job(track, MusicRecovery.DEFAULT_PAGE)
+        lookup.recovery = MusicDownload("1_2", "", "title", "artist", refreshAttempt = 1)
+        lookup.batch.onFailed(); lookup.batch.onFailed(); check(released == 1)
+        println("PASS failed recovery lookup releases its reservation once")
+        MusicDownloadStarter.onFinish = null
+        val guarded = Job(track, MusicRecovery.DEFAULT_PAGE)
+        check(guarded.isCurrent()); MusicCache.generation++; check(!guarded.isCurrent()); MusicCache.generation--
+        cancellationChange(guarded)
+        println("PASS queued lookup keeps original cache and cancellation generations")
+        return 5
+    }
+    private fun cancellationChange(job: Job) {
+        MusicDownloadStarter.cancellation++; check(!job.isCurrent()); MusicDownloadStarter.cancellation--
+    }
+}
+fun main() {
+    var tests = 0
+    fun test(name: String, run: () -> Unit) {
+        MusicCache.generation = 1; MusicCache.stored.clear(); MusicCacheWorker.pending = 0
+        MusicCacheWorker.requests.clear(); MusicCacheWorker.beforeRecover = null
+        run(); tests++; println("PASS $name")
+    }
+    fun download() = MusicDownload("1_2", "https://cs1.vkuseraudio.ru/old", "title", "artist",
+        streamExpiresAt = System.currentTimeMillis() + 300000)
+    fun fresh(request: MusicCacheWorker.Request) = request.download.copy(url = "https://cs1.vkuseraudio.ru/new",
+        streamExpiresAt = System.currentTimeMillis() + 300000)
+    test("HTTP rejection hands off after cleanup and reports one eventual success") {
+        val h = CacheHarness { if (it.url.endsWith("old")) throw MusicRecovery.HttpFailure(403) }
+        var finished = 0; val batch = CacheBatch(1) { finished++ }
+        h.cache(download(), batch); h.CACHE.drain(); check(batch.done == 0 && h.cleanups == 1)
+        MusicCacheWorker.beforeRecover = { check(h.cleanups == 1 && h.CACHE_JOBS.isEmpty()) }
+        h.MAIN.drain(); val request = MusicCacheWorker.requests.single()
+        check(request.download.refreshAttempt == 1 && request.download.cacheGeneration == 1L)
+        check(h.QUEUED.get() == 0 && MusicCacheWorker.pending == 1)
+        MusicCacheWorker.pending = 0; h.cache(fresh(request), request.batch); h.CACHE.drain(); h.MAIN.drain()
+        check(batch.saved == 1 && batch.failed == 0 && finished == 1 && h.fetches == 2)
+    }
+    test("second HTTP rejection fails once without scheduling another refresh") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); h.MAIN.drain()
+        val request = MusicCacheWorker.requests.single(); MusicCacheWorker.pending = 0
+        h.cache(fresh(request), request.batch); h.CACHE.drain(); h.MAIN.drain()
+        check(batch.failed == 1 && MusicCacheWorker.requests.size == 1)
+    }
+    test("expiry while queued refreshes without attempting the stale URL") {
+        val h = CacheHarness {}; val batch = CacheBatch(1) {}
+        h.cache(download().copy(streamExpiresAt = System.currentTimeMillis() - 1), batch)
+        h.CACHE.drain(); h.MAIN.drain(); check(h.fetches == 0 && MusicCacheWorker.requests.size == 1 && batch.done == 0)
+    }
+    test("cancel before recovery handoff cannot resurrect queue") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(410) }; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); h.CANCELLED.incrementAndGet(); h.MAIN.drain()
+        check(batch.cancelled == 1 && MusicCacheWorker.requests.isEmpty() && h.QUEUED.get() == 0)
+    }
+    test("cache clear before handoff prevents automatic recreation") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(404) }; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); MusicCache.generation++; h.MAIN.drain()
+        check(batch.cancelled == 1 && MusicCacheWorker.requests.isEmpty() && MusicCache.stored.isEmpty())
+    }
+    test("cancellation after lookup still blocks the resumed download") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); h.MAIN.drain(); val request = MusicCacheWorker.requests.single()
+        h.CANCELLED.incrementAndGet(); MusicCacheWorker.pending = 0; h.cache(fresh(request), request.batch)
+        h.CACHE.drain(); h.MAIN.drain(); check(h.fetches == 1 && batch.cancelled == 1)
+    }
+    test("existing cached audio does not trigger a refresh or another download") {
+        val h = CacheHarness { error("must not fetch") }; MusicCache.stored += "1_2"; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); h.MAIN.drain()
+        check(batch.already == 1 && h.fetches == 0 && MusicCacheWorker.requests.isEmpty())
+    }
+    test("conversion failure is terminal and does not trigger another playback") {
+        val h = CacheHarness { throw IllegalStateException("conversion failed") }; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); h.MAIN.drain()
+        check(batch.failed == 1 && MusicCacheWorker.requests.isEmpty())
+    }
+    test("temporary read truncation retries the same task after cleaning the partial attempt") {
+        var attempts = 0
+        val h = CacheHarness { attempts++; if (attempts == 1) throw java.io.EOFException() }; val batch = CacheBatch(1) {}
+        h.cache(download(), batch); h.CACHE.drain(); h.MAIN.drain()
+        check(batch.saved == 1 && batch.failed == 0 && h.fetches == 2 && h.cleanups == 2)
+        check(MusicCacheWorker.requests.isEmpty())
+    }
+    test("repeated automatic media events cannot enqueue another lookup while refresh is pending") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }
+        h.cache(download()); h.CACHE.drain(); h.MAIN.drain()
+        repeat(10) { h.cache(download()) }; h.CACHE.drain(); h.MAIN.drain()
+        check(h.fetches == 1 && MusicCacheWorker.requests.size == 1)
+    }
+    test("automatic retry preserves the per-process failure limit") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }
+        repeat(2) {
+            h.cache(download()); h.CACHE.drain(); h.MAIN.drain()
+            val request = MusicCacheWorker.requests.last(); MusicCacheWorker.pending = 0
+            check(request.download.manualRequest == false)
+            h.cache(fresh(request), CacheBatch(1) {}); h.CACHE.drain(); h.MAIN.drain()
+        }
+        check(h.FAILED["1_2"] == 2)
+        h.cache(download()); h.CACHE.drain(); h.MAIN.drain()
+        check(h.fetches == 4 && MusicCacheWorker.requests.size == 2)
+    }
+    test("late cleanup of old recovery cannot retire a new cache-generation reservation") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }
+        h.cache(download(), CacheBatch(1) {}); h.CACHE.drain(); h.MAIN.drain()
+        val old = MusicCacheWorker.requests.single().download
+        MusicCache.generation = 2
+        h.cache(download(), CacheBatch(1) {}); h.CACHE.drain(); h.MAIN.drain()
+        h.finishRecovery(old); check(h.REFRESHING["1_2"]?.first == 2L)
+    }
+    test("failed URL lookups also count toward the automatic failure cap") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }
+        repeat(2) {
+            h.cache(download()); h.CACHE.drain(); h.MAIN.drain()
+            val request = MusicCacheWorker.requests.last(); MusicCacheWorker.pending = 0
+            h.finishRecovery(request.download, failed = true)
+        }
+        h.cache(download()); h.CACHE.drain(); h.MAIN.drain()
+        check(h.fetches == 2 && MusicCacheWorker.requests.size == 2 && h.FAILED["1_2"] == 2)
+    }
+    test("late cleanup cannot retire a newer retry in the same cache and cancellation generation") {
+        val h = CacheHarness { throw MusicRecovery.HttpFailure(403) }
+        h.cache(download(), CacheBatch(1) {}); h.CACHE.drain(); h.MAIN.drain()
+        val old = MusicCacheWorker.requests.single().download; h.finishRecovery(old)
+        h.cache(download(), CacheBatch(1) {}); h.CACHE.drain(); h.MAIN.drain()
+        val newer = MusicCacheWorker.requests.last().download
+        h.finishRecovery(old); check(h.REFRESHING["1_2"]?.third == newer.recoveryToken)
+    }
+    tests += JobChecks.run()
+    tests += RendererChecks.run()
+    println("PASS $tests controlled cache/recovery checks")
+}

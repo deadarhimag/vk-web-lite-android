@@ -1,0 +1,43 @@
+# Сборка и настройки конкретного компьютера — в репозиторий не попадают.
+.gradle/
+build/
+app/build/
+app/release/
+app/debug/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Ключ подписи и пароли — секрет: только у вас (и в Secrets репозитория на GitHub, см. руководство сопровождения).
+keystore.properties
+*.jks
+*.keystore
+
+# Зависимости JS-проверок ставятся при запуске.
+tests/js/node_modules/
+
+# Local audit/build tools and downloaded dependencies.
+.review-gradle/
+.review-tools/
+tests/js/.review-npm-cache/
+
+# Локальные файлы, ключи и результаты проверок.
+*.apk
+*.aab
+*.p12
+*.pfx
+*.pkcs12
+*.pem
+*.key
+.env
+.env.*
+*.log
+*.tmp
+Thumbs.db
+/injection-checks.jar
+/CHECK_RESULTS.txt
+/review-checks-results.txt

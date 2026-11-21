@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Цвет отметки «в сети»: у тёмной и светлой темы свой (см. themes.xml). -->
+    <attr name="colorOnline" format="color" />
+    <!-- Пузырь своих сообщений и текст на нём (3.94): в тёмной теме — спокойный тёмно-синий контейнер вместо яркого
+         основного цвета, в светлой — основной синий. Ссылаются на роли темы, поэтому следуют и «Цветам обоев». -->
+    <attr name="colorBubbleOut" format="color" />
+    <attr name="colorOnBubbleOut" format="color" />
+    <!-- Предельная ширина пузыря сообщения (4.1, ui/MaxWidthLinearLayout.kt). -->
+    <declare-styleable name="MaxWidthLinearLayout">
+        <attr name="android:maxWidth" />
+    </declare-styleable>
+</resources>

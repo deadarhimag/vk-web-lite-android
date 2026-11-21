@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Затемнение под верхней полосой проигрывателя (4.25): сверху как у нижней полосы, к низу сходит на нет. Без него
+     название видео белым по кадру не читалось на светлых сценах (снег, небо, белый фон). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:endColor="@android:color/transparent"
+        android:startColor="@color/media_scrim" />
+</shape>

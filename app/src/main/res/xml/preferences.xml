@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Структура настроек. Ключи и значения по умолчанию — в settings/AppSettings.kt;
+  списки вариантов заполняются в SettingsFragment из тех же источников, что и приложение.
+  3.94: разделы — отдельными экранами (PreferenceScreen внутри): первый экран короткий, в каждом разделе — свои группы.
+  SettingsActivity открывает раздел тем же SettingsFragment с ключом раздела. «Для разработки» скрыт, пока его не
+  откроют семью нажатиями на «Версию».
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_appearance"
+        app:summary="@string/pref_screen_appearance_summary"
+        app:title="@string/pref_category_appearance">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_theme">
+
+            <ListPreference
+                app:defaultValue="DARK"
+                app:iconSpaceReserved="false"
+                app:key="theme_mode"
+                app:title="@string/pref_theme"
+                app:useSimpleSummaryProvider="true" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:iconSpaceReserved="false"
+                app:key="dynamic_colors"
+                app:summary="@string/pref_dynamic_colors_summary"
+                app:title="@string/pref_dynamic_colors" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_pages">
+
+            <!-- 4.24: свой ползунок — шаг seekBarIncrement и при перетаскивании пальцем. -->
+            <com.example.vkweb.settings.StepSeekBarPreference
+                android:max="150"
+                app:defaultValue="100"
+                app:iconSpaceReserved="false"
+                app:key="text_zoom"
+                app:min="80"
+                app:seekBarIncrement="10"
+                app:showSeekBarValue="true"
+                app:title="@string/pref_text_zoom" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_navigation"
+        app:summary="@string/pref_screen_navigation_summary"
+        app:title="@string/pref_category_navigation">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_start">
+
+            <ListPreference
+                app:defaultValue="MESSAGES"
+                app:iconSpaceReserved="false"
+                app:key="start_section"
+                app:title="@string/pref_start_section" />
+
+            <!-- 3.94: системный экран «Открывать по умолчанию» этого приложения (ссылки vk.com — web/LinkActivity.kt). -->
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="open_links"
+                app:summary="@string/pref_open_links_summary"
+                app:title="@string/pref_open_links" />
+        </PreferenceCategory>
+
+        <!-- 4.64: вид меню — сам по навигации Android (NavStyle.pick) или всегда нижняя панель / боковое меню. -->
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_nav_style">
+
+            <ListPreference
+                app:defaultValue="AUTO"
+                app:iconSpaceReserved="false"
+                app:key="nav_style"
+                app:title="@string/pref_nav_style"
+                app:useSimpleSummaryProvider="true" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="nav_labels"
+                app:summary="@string/pref_nav_labels_summary"
+                app:title="@string/pref_nav_labels" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_drawer">
+
+            <!-- Не хранит значение само: SettingsFragment записывает выключенные пункты (menu_items_off); варианты — из MenuItems. -->
+            <MultiSelectListPreference
+                app:dialogTitle="@string/pref_menu_items_dialog"
+                app:iconSpaceReserved="false"
+                app:key="menu_items"
+                app:persistent="false"
+                app:title="@string/pref_menu_items" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="menu_edge_swipe"
+                app:summary="@string/pref_drawer_swipe_summary"
+                app:title="@string/pref_drawer_swipe" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="section_swipe"
+                app:summary="@string/pref_section_swipe_summary"
+                app:title="@string/pref_section_swipe" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:iconSpaceReserved="false"
+                app:key="pin_nav_wide"
+                app:summary="@string/pref_pin_nav_summary"
+                app:title="@string/pref_pin_nav" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_interface"
+        app:summary="@string/pref_screen_interface_summary"
+        app:title="@string/pref_category_interface">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_sections">
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_messages"
+                app:summary="@string/pref_native_messages_summary"
+                app:title="@string/pref_native_messages" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_feed"
+                app:summary="@string/pref_native_feed_summary"
+                app:title="@string/pref_native_feed" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_music"
+                app:summary="@string/pref_native_music_summary"
+                app:title="@string/pref_native_music" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_people"
+                app:summary="@string/pref_native_people_summary"
+                app:title="@string/pref_native_people" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_photos"
+                app:summary="@string/pref_native_photos_summary"
+                app:title="@string/pref_native_photos" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_owner"
+                app:summary="@string/pref_native_owner_summary"
+                app:title="@string/pref_native_owner" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:dependency="native_owner"
+                app:iconSpaceReserved="false"
+                app:key="photo_opens_page"
+                app:summaryOff="@string/pref_photo_opens_page_off"
+                app:summaryOn="@string/pref_photo_opens_page_on"
+                app:title="@string/pref_photo_opens_page" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_clips"
+                app:summary="@string/pref_native_clips_summary"
+                app:title="@string/pref_native_clips" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_video">
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="native_video"
+                app:summary="@string/pref_native_video_summary"
+                app:title="@string/pref_native_video" />
+
+            <ListPreference
+                app:defaultValue="720"
+                app:iconSpaceReserved="false"
+                app:key="video_quality"
+                app:title="@string/pref_video_quality"
+                app:useSimpleSummaryProvider="true" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:iconSpaceReserved="false"
+                app:key="video_auto_rotate"
+                app:summary="@string/pref_video_auto_rotate_summary"
+                app:title="@string/pref_video_auto_rotate" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="video_volume_gesture"
+                app:summary="@string/pref_video_volume_gesture_summary"
+                app:title="@string/pref_video_volume_gesture" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_messages"
+        app:summary="@string/pref_screen_messages_summary"
+        app:title="@string/pref_category_messages">
+
+        <!-- 4.47: уведомления — своим разделом. Общий переключатель, текст, звук (система) и свои настройки диалогов. -->
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_notifications">
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="notify_messages"
+                app:summary="@string/pref_notify_messages_summary"
+                app:title="@string/pref_notify_messages" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:dependency="notify_messages"
+                app:iconSpaceReserved="false"
+                app:key="notify_preview"
+                app:summary="@string/pref_notify_preview_summary"
+                app:title="@string/pref_notify_preview" />
+
+            <Preference
+                app:dependency="notify_messages"
+                app:iconSpaceReserved="false"
+                app:key="dialog_notify"
+                app:title="@string/pref_dialog_notify" />
+
+            <Preference
+                app:dependency="notify_messages"
+                app:iconSpaceReserved="false"
+                app:key="notify_system"
+                app:title="@string/pref_notify_system" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_background_check">
+
+            <ListPreference
+                app:iconSpaceReserved="false"
+                app:key="message_sync_min"
+                app:title="@string/pref_message_sync" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="battery_settings"
+                app:summary="@string/pref_battery_summary"
+                app:title="@string/pref_battery" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_open_screen">
+
+            <ListPreference
+                app:iconSpaceReserved="false"
+                app:key="messages_refresh_sec"
+                app:title="@string/pref_messages_refresh" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="messages_two_pane"
+                app:summary="@string/pref_two_pane_summary"
+                app:title="@string/pref_two_pane" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="messages_prefetch_unread"
+                app:summary="@string/pref_prefetch_unread_summary"
+                app:title="@string/pref_prefetch_unread" />
+
+            <!-- 4.57: две последние переписки — ярлыками при долгом нажатии на значок приложения. -->
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="recent_chat_shortcuts"
+                app:summary="@string/pref_recent_shortcuts_summary"
+                app:title="@string/pref_recent_shortcuts" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_privacy"
+        app:summary="@string/pref_screen_privacy_summary"
+        app:title="@string/pref_category_privacy">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_blocking">
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="hide_ads"
+                app:summary="@string/pref_hide_ads_summary"
+                app:title="@string/pref_hide_ads" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="block_trackers"
+                app:summary="@string/pref_block_trackers_summary"
+                app:title="@string/pref_block_trackers" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="hide_device_info"
+                app:summary="@string/pref_hide_device_info_summary"
+                app:title="@string/pref_hide_device_info" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_playback"
+        app:summary="@string/pref_screen_playback_summary"
+        app:title="@string/pref_category_playback">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_background_play">
+
+            <SwitchPreferenceCompat
+                app:defaultValue="true"
+                app:iconSpaceReserved="false"
+                app:key="background_playback"
+                app:summary="@string/pref_background_playback_summary"
+                app:title="@string/pref_background_playback" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:iconSpaceReserved="false"
+                app:key="cache_music"
+                app:summary="@string/pref_cache_music_summary"
+                app:title="@string/pref_cache_music" />
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:dependency="cache_music"
+                app:iconSpaceReserved="false"
+                app:key="cache_my_music"
+                app:summary="@string/pref_cache_my_music_summary"
+                app:title="@string/pref_cache_my_music" />
+
+            <ListPreference
+                app:defaultValue="5"
+                app:dependency="background_playback"
+                app:iconSpaceReserved="false"
+                app:key="paused_timeout_min"
+                app:title="@string/pref_paused_timeout"
+                app:useSimpleSummaryProvider="true" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_data"
+        app:summary="@string/pref_screen_data_summary"
+        app:title="@string/pref_category_data">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_account">
+
+            <ListPreference
+                app:iconSpaceReserved="false"
+                app:key="session_refresh_min"
+                app:title="@string/pref_session_refresh" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="sign_out"
+                app:summary="@string/pref_sign_out_summary"
+                app:title="@string/pref_sign_out" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:key="storage"
+            app:title="@string/pref_category_offline">
+
+            <ListPreference
+                app:defaultValue="1000"
+                app:iconSpaceReserved="false"
+                app:key="image_cache_mb"
+                app:title="@string/pref_image_cache"
+                app:useSimpleSummaryProvider="true" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="app_folder"
+                app:summary="@string/pref_app_folder_summary"
+                app:title="@string/pref_app_folder" />
+
+            <!-- Здесь SettingsFragment добавляет по пункту на каждую StorageCategory и «Удалить всё». -->
+        </PreferenceCategory>
+    </PreferenceScreen>
+
+    <PreferenceScreen
+        app:iconSpaceReserved="false"
+        app:key="screen_about"
+        app:summary="@string/pref_screen_about_summary"
+        app:title="@string/pref_category_about">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_group_app">
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="version"
+                app:title="@string/pref_version" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="licenses"
+                app:selectable="false"
+                app:summary="@string/pref_licenses_summary"
+                app:title="@string/pref_licenses" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="third_party"
+                app:summary="@string/pref_third_party_summary"
+                app:title="@string/pref_third_party" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/pref_category_log">
+
+            <ListPreference
+                app:iconSpaceReserved="false"
+                app:key="log_level"
+                app:summary="@string/pref_log_level_summary"
+                app:title="@string/pref_log_level" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="log_share"
+                app:summary="@string/pref_log_share_summary"
+                app:title="@string/pref_log_share" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="log_save"
+                app:summary="@string/pref_log_save_summary"
+                app:title="@string/pref_log_save" />
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:key="dev"
+            app:title="@string/pref_category_dev">
+
+            <SwitchPreferenceCompat
+                app:defaultValue="false"
+                app:iconSpaceReserved="false"
+                app:key="collect_dump"
+                app:summary="@string/pref_collect_dump_summary"
+                app:title="@string/pref_collect_dump" />
+
+            <!-- Сводку (сколько собрано) и сохранение в файл задаёт settings/DumpSection.kt. -->
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="dump_export"
+                app:title="@string/pref_dump_export" />
+
+            <Preference
+                app:iconSpaceReserved="false"
+                app:key="dump_share"
+                app:summary="@string/pref_dump_share_summary"
+                app:title="@string/pref_dump_share" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+</PreferenceScreen>

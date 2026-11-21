@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Заставка запуска (4.54, Android 12+): фон — цвет фона темы, значок приложения по центру. С Android 13 тема
+      заставки запоминается (AppTheme.apply → setSplashScreenTheme): светлая тема в настройках — светлая заставка.
+      Цвет значков панели навигации — как в values-v27.
+    -->
+    <style name="Theme.VkWeb.Dark" parent="Base.Theme.VkWeb.Dark">
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowSplashScreenBackground">@color/ink_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+    </style>
+
+    <style name="Theme.VkWeb.Light" parent="Base.Theme.VkWeb.Light">
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowSplashScreenBackground">@color/paper_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+    </style>
+</resources>

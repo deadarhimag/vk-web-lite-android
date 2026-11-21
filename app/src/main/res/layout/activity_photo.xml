@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Фото на весь экран — лента: соседнее фото выезжает вслед за пальцем. Щипок — масштаб, двойное касание — приблизить,
+  касание — спрятать или показать кнопки. Закрыть — кнопкой сверху (на телефонах без жестов и кнопки «Назад») или
+  смахиванием фото вверх или вниз (3.90).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/photo_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/media_background">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/photo_pager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:overScrollMode="never" />
+
+    <!-- Кнопки поверх фото; отступают от системных панелей. -->
+    <FrameLayout
+        android:id="@+id/photo_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:fitsSystemWindows="true">
+
+        <ImageButton
+            android:id="@+id/photo_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="8dp"
+            android:background="@drawable/photo_counter_bg"
+            android:contentDescription="@string/photo_close"
+            android:src="@drawable/ic_close" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:orientation="horizontal">
+
+            <!-- Сохранить фото в галерею (4.0; Android 10+ — без разрешений, в «Картинки/VkWeb»). -->
+            <ImageButton
+                android:id="@+id/photo_save"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginVertical="8dp"
+                android:background="@drawable/photo_counter_bg"
+                android:contentDescription="@string/photo_save"
+                android:src="@drawable/ic_download"
+                app:tint="@color/media_on"
+                android:visibility="gone" />
+
+            <!-- Поделиться фото: в другой мессенджер картинкой. -->
+            <ImageButton
+                android:id="@+id/photo_share"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginVertical="8dp"
+                android:background="@drawable/photo_counter_bg"
+                android:contentDescription="@string/share_photo"
+                android:src="@drawable/ic_share"
+                app:tint="@color/media_on" />
+
+            <!-- Страница фото на сайте (лайки, комментарии): есть, только если фото пришло со страницы с такой ссылкой. -->
+            <ImageButton
+                android:id="@+id/photo_page"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_margin="8dp"
+                android:background="@drawable/photo_counter_bg"
+                android:contentDescription="@string/photo_open_page"
+                android:src="@drawable/ic_web_page"
+                android:visibility="gone"
+                app:tint="@color/media_on" />
+        </LinearLayout>
+
+        <!-- Какое по счёту фото открыто; у одиночного не показывается. -->
+        <TextView
+            android:id="@+id/photo_counter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/photo_counter_bg"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="6dp"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="@color/media_on"
+            android:visibility="gone" />
+    </FrameLayout>
+</FrameLayout>

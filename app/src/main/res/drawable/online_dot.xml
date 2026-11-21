@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Отметка «в сети» на аватаре друга: зелёный кружок с обводкой цветом фона.
+     4.23: обводка — по состоянию строки (color/online_ring): у выделенной строки диалога (две колонки) цветом выделения,
+     а не серо-синим кольцом цвета фона. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="?attr/colorOnline" />
+    <stroke android:width="2dp" android:color="@color/online_ring" />
+</shape>

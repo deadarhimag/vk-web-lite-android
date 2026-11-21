@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Base.Theme.VkWeb.Dark" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/signal_blue_dark</item>
+        <item name="colorOnline">@color/signal_green_dark</item>
+        <item name="colorBubbleOut">?attr/colorPrimaryContainer</item>
+        <item name="colorOnBubbleOut">?attr/colorOnPrimaryContainer</item>
+        <item name="colorOnPrimary">@color/on_signal_blue_dark</item>
+        <item name="colorSecondaryContainer">@color/ink_surface_high</item>
+        <item name="colorOnSecondaryContainer">@color/ink_text</item>
+        <item name="android:colorBackground">@color/ink_background</item>
+        <item name="colorOnBackground">@color/ink_text</item>
+        <item name="colorSurface">@color/ink_surface</item>
+        <item name="colorSurfaceContainerLow">@color/ink_surface</item>
+        <item name="colorSurfaceContainer">@color/ink_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/ink_surface_high</item>
+        <item name="colorOnSurface">@color/ink_text</item>
+        <item name="colorOnSurfaceVariant">@color/ink_text_muted</item>
+        <item name="colorControlNormal">@color/ink_text_muted</item>
+        <item name="colorOutlineVariant">@color/ink_outline</item>
+        <item name="colorOutline">@color/ink_outline_strong</item>
+        <item name="colorPrimaryContainer">@color/ink_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/ink_on_primary_container</item>
+        <item name="colorPrimaryInverse">@color/signal_blue_light</item>
+        <item name="colorSecondary">@color/ink_secondary</item>
+        <item name="colorOnSecondary">@color/ink_on_secondary</item>
+        <item name="colorSurfaceVariant">@color/ink_surface_high</item>
+        <item name="colorSurfaceContainerLowest">@color/ink_surface_lowest</item>
+        <item name="colorSurfaceContainerHighest">@color/ink_surface_highest</item>
+        <item name="colorSurfaceBright">@color/ink_surface_bright</item>
+        <item name="colorSurfaceDim">@color/ink_background</item>
+        <item name="colorSurfaceInverse">@color/ink_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/ink_inverse_on_surface</item>
+        <item name="android:windowBackground">@color/ink_background</item>
+        <item name="android:statusBarColor">@color/ink_surface</item>
+        <item name="android:navigationBarColor">@color/ink_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="searchViewStyle">@style/Widget.VkWeb.SearchView</item>
+    </style>
+
+    <style name="Base.Theme.VkWeb.Light" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/signal_blue_light</item>
+        <item name="colorOnline">@color/signal_green_light</item>
+        <item name="colorBubbleOut">?attr/colorPrimary</item>
+        <item name="colorOnBubbleOut">?attr/colorOnPrimary</item>
+        <item name="colorOnPrimary">@color/on_signal_blue_light</item>
+        <item name="colorSecondaryContainer">@color/paper_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/paper_text</item>
+        <item name="android:colorBackground">@color/paper_background</item>
+        <item name="colorOnBackground">@color/paper_text</item>
+        <item name="colorSurface">@color/paper_surface</item>
+        <item name="colorSurfaceContainerLow">@color/paper_surface</item>
+        <item name="colorSurfaceContainer">@color/paper_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/paper_surface_high</item>
+        <item name="colorOnSurface">@color/paper_text</item>
+        <item name="colorOnSurfaceVariant">@color/paper_text_muted</item>
+        <item name="colorControlNormal">@color/paper_text_muted</item>
+        <item name="colorOutlineVariant">@color/paper_outline</item>
+        <item name="colorOutline">@color/paper_outline_strong</item>
+        <item name="colorPrimaryContainer">@color/paper_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/paper_on_primary_container</item>
+        <item name="colorPrimaryInverse">@color/signal_blue_dark</item>
+        <item name="colorSecondary">@color/paper_secondary</item>
+        <item name="colorOnSecondary">@color/paper_on_secondary</item>
+        <item name="colorSurfaceVariant">@color/paper_surface_high</item>
+        <item name="colorSurfaceContainerLowest">@color/paper_surface_lowest</item>
+        <item name="colorSurfaceContainerHighest">@color/paper_surface_highest</item>
+        <item name="colorSurfaceBright">@color/paper_surface</item>
+        <item name="colorSurfaceDim">@color/paper_surface_dim</item>
+        <item name="colorSurfaceInverse">@color/paper_inverse_surface</item>
+        <item name="colorOnSurfaceInverse">@color/paper_inverse_on_surface</item>
+        <item name="android:windowBackground">@color/paper_background</item>
+        <item name="android:statusBarColor">@color/paper_surface</item>
+        <item name="android:navigationBarColor">@color/paper_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="searchViewStyle">@style/Widget.VkWeb.SearchView</item>
+    </style>
+
+    <style name="Theme.VkWeb.Dark" parent="Base.Theme.VkWeb.Dark" />
+
+    <!-- Чёрная тема (4.0): поверх тёмной — фон и поверхности чисто чёрные, приподнятые — чуть светлее, чтобы карточки
+         и пузыри не сливались с фоном. -->
+    <style name="ThemeOverlay.VkWeb.Black" parent="">
+        <item name="android:colorBackground">@color/black_background</item>
+        <item name="colorSurface">@color/black_background</item>
+        <item name="colorSurfaceContainerLowest">@color/black_background</item>
+        <item name="colorSurfaceContainerLow">@color/black_background</item>
+        <item name="colorSurfaceContainer">@color/black_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/black_surface_high</item>
+        <item name="colorSurfaceContainerHighest">@color/black_surface_highest</item>
+        <item name="colorSurfaceDim">@color/black_background</item>
+        <!-- 4.1: без них оставались цвета тёмной темы (#2A3140, #2F3440) — синеватые пятна на чёрном. -->
+        <item name="colorSurfaceVariant">@color/black_surface_high</item>
+        <item name="colorSurfaceBright">@color/black_surface_highest</item>
+        <item name="colorSecondaryContainer">@color/black_surface_highest</item>
+        <item name="android:windowBackground">@color/black_background</item>
+    </style>
+    <style name="Theme.VkWeb.Light" parent="Base.Theme.VkWeb.Light" />
+
+    <!-- Просмотр фото (3.90): прозрачное окно — при смахивании фото тускнеет фон, и под ним виден прежний экран. -->
+    <style name="Theme.VkWeb.PhotoViewer" parent="Theme.VkWeb.Dark">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+</resources>

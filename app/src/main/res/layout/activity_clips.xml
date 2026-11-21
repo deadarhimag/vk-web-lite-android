@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Свой проигрыватель клипов (3.76): ролик во весь экран с сохранением пропорций, листание смахиванием вверх/вниз,
+  нажатие — пауза. Внизу автор, описание и перемотка, справа — лайки и комментарии, сверху — закрыть и страница клипа.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/clips_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/media_background">
+
+    <!-- 4.0: Media3 (ExoPlayer) вместо VideoView — один проигрыватель на всю ленту, без пересоздания на каждом ролике. -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/clips_video"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/clips_video_description"
+        app:resize_mode="fit"
+        app:shutter_background_color="@color/media_background"
+        app:surface_type="surface_view"
+        app:use_controller="false" />
+
+    <ImageView
+        android:id="@+id/clips_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/clips_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true" />
+
+    <ImageView
+        android:id="@+id/clips_paused"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:alpha="0.85"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_player_play"
+        android:visibility="gone"
+        app:tint="@color/media_on" />
+
+    <!-- Слой жестов: смахивание листает, нажатие — пауза. Кнопки и полоса лежат выше и получают свои нажатия сами. -->
+    <View
+        android:id="@+id/clips_touch"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/clips_side"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="8dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/clips_likes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:drawablePadding="4dp"
+            android:gravity="center"
+            android:minWidth="48dp"
+            android:padding="6dp"
+            android:shadowColor="@color/media_scrim"
+            android:shadowRadius="4"
+            android:textColor="@color/media_on" />
+
+        <TextView
+            android:id="@+id/clips_comments"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:drawablePadding="4dp"
+            android:gravity="center"
+            android:minWidth="48dp"
+            android:padding="6dp"
+            android:shadowColor="@color/media_scrim"
+            android:shadowRadius="4"
+            android:textColor="@color/media_on" />
+    </LinearLayout>
+
+    <!-- Низ (4.0): автор, описание и время — над полосой; полоса перемотки — от края до края, в самом низу. -->
+    <LinearLayout
+        android:id="@+id/clips_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/media_scrim"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/clips_avatar"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/clips_author"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textColor="@color/media_on" />
+
+                <TextView
+                    android:id="@+id/clips_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:gravity="end"
+                    android:textAppearance="?attr/textAppearanceLabelMedium"
+                    android:textColor="@color/media_on" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/clips_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:ellipsize="end"
+                android:maxLines="3"
+                android:textColor="@color/media_on" />
+        </LinearLayout>
+
+        <SeekBar
+            android:id="@+id/clips_seek"
+            style="@style/VideoTimeline"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/clips_seek_description"
+            android:max="1000" />
+    </LinearLayout>
+
+    <!-- Верхняя полоса: крестик и страница клипа. Вместе с clips_side и clips_bottom по умолчанию скрыта (4.31,
+         clips/ClipsChrome.kt): видно только ролик, нажатие на экран показывает интерфейс. -->
+    <FrameLayout
+        android:id="@+id/clips_top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:fitsSystemWindows="true">
+
+        <ImageButton
+            android:id="@+id/clips_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|start"
+            android:layout_margin="8dp"
+            android:background="@drawable/photo_counter_bg"
+            android:contentDescription="@string/photo_close"
+            android:src="@drawable/ic_close" />
+
+        <ImageButton
+            android:id="@+id/clips_page"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="8dp"
+            android:background="@drawable/photo_counter_bg"
+            android:contentDescription="@string/video_open_page"
+            android:src="@drawable/ic_web_page"
+            app:tint="@color/media_on" />
+    </FrameLayout>
+</FrameLayout>

@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Видео и клипы из переписки — прямо здесь, без перехода в главное окно: файл видео проигрывает система (VideoView),
+  а если файла нет или он не играет — встраиваемый проигрыватель VK в WebView. Кнопки сверху: закрыть и открыть на
+  странице VK (комментарии, лайки).
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/video_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/media_background">
+
+    <!-- 4.0: Media3 (ExoPlayer) вместо VideoView. Кадр вписывается в экран с сохранением пропорций (resize_mode=fit),
+         свои кнопки — ниже; встроенные кнопки проигрывателя выключены. -->
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/video_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/video_player_description"
+        app:keep_content_on_player_reset="true"
+        app:resize_mode="fit"
+        app:shutter_background_color="@color/media_background"
+        app:surface_type="surface_view"
+        app:use_controller="false" />
+
+    <FrameLayout
+        android:id="@+id/video_web_holder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/video_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true" />
+
+    <!-- Двойное касание у края (4.0): «−10 с» / «+10 с» на полсекунды. -->
+    <TextView
+        android:id="@+id/video_skip_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/photo_counter_bg"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textColor="@color/media_on"
+        android:visibility="gone" />
+
+    <!-- Верхняя полоса одной строкой (3.87): закрыть · название · качество · страница VK. Раньше название лежало
+         по центру поверх всей ширины и наезжало на кнопку качества. -->
+    <LinearLayout
+        android:id="@+id/video_controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@drawable/media_scrim_top"
+        android:fitsSystemWindows="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <ImageButton
+            android:id="@+id/video_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/photo_counter_bg"
+            android:contentDescription="@string/photo_close"
+            android:src="@drawable/ic_close" />
+
+        <TextView
+            android:id="@+id/video_title_bar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            android:textColor="@color/media_on" />
+
+        <!-- Комментарии своим списком (4.45); есть, если известен номер ролика. -->
+        <ImageButton
+            android:id="@+id/video_comments"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/photo_counter_bg"
+            android:contentDescription="@string/comments_open"
+            android:src="@drawable/ic_post_comment"
+            app:tint="@color/media_on"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/video_page"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/photo_counter_bg"
+            android:contentDescription="@string/video_open_page"
+            android:src="@drawable/ic_web_page"
+            app:tint="@color/media_on" />
+    </LinearLayout>
+
+    <!-- Нижняя часть (4.0): над полосой — пуск/пауза, время, скорость, качество, поворот; сама полоса перемотки — от
+         края до края экрана, в самом низу. Прячется и показывается вместе с верхней касанием. -->
+    <LinearLayout
+        android:id="@+id/video_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/media_scrim"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="4dp">
+
+            <ImageButton
+                android:id="@+id/video_play"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/video_pause"
+                android:src="@drawable/ic_player_pause"
+                app:tint="@color/media_on" />
+
+            <TextView
+                android:id="@+id/video_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="@color/media_on" />
+
+            <!-- Скорость (4.0): 0,5× … 2×. -->
+            <TextView
+                android:id="@+id/video_speed"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/photo_counter_bg"
+                android:gravity="center"
+                android:minWidth="56dp"
+                android:paddingHorizontal="12dp"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="@color/media_on"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/video_quality"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/photo_counter_bg"
+                android:gravity="center"
+                android:minWidth="56dp"
+                android:paddingHorizontal="12dp"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="@color/media_on"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/video_rotate"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/video_rotate"
+                android:src="@drawable/ic_screen_rotation" />
+        </LinearLayout>
+
+        <!-- Полоса перемотки от края до края: без отступов по бокам (бегунок у краёв заходит за экран наполовину). 4.1: высота
+             48dp (нажимаемое), жест на ней не считается системным «Назад» (ui/SystemGestures.kt). -->
+        <SeekBar
+            android:id="@+id/video_seek"
+            style="@style/VideoTimeline"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:contentDescription="@string/video_seek_description"
+            android:max="1000" />
+    </LinearLayout>
+</FrameLayout>

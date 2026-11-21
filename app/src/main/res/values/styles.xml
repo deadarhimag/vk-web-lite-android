@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Счётчик под постом: значок и число. -->
+    <style name="PostStat">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_marginEnd">20dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:drawablePadding">6dp</item>
+        <!-- Значок — app:drawableStartCompat (item_post.xml), поэтому и оттенок — совместимый (lint UseCompatTextViewDrawableXml). -->
+        <item name="drawableTint">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <!-- Счётчик в шапке страницы: «29 друзей». -->
+    <style name="OwnerCounter">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:textAppearance">?attr/textAppearanceLabelLarge</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <!-- Полоса перемотки видео и клипов (4.0): от края до края экрана, без боковых отступов. -->
+    <style name="VideoTimeline" parent="Widget.AppCompat.SeekBar">
+        <item name="android:paddingStart">0dp</item>
+        <item name="android:paddingEnd">0dp</item>
+        <item name="android:paddingLeft">0dp</item>
+        <item name="android:paddingRight">0dp</item>
+        <item name="android:splitTrack">false</item>
+        <item name="android:progressTint">?attr/colorPrimary</item>
+        <item name="android:secondaryProgressTint">@color/media_buffered</item>
+        <item name="android:progressBackgroundTint">@color/media_track</item>
+        <item name="android:thumbTint">?attr/colorPrimary</item>
+    </style>
+
+    <!-- Поле поиска в панели (androidx SearchView; 4.31): подложка — «пилюля» темы вместо подчёркивания AppCompat. Цвет
+         текста и подсказки — из темы (messages/SearchFields.kt). Подключено в темах как searchViewStyle. -->
+    <style name="Widget.VkWeb.SearchView" parent="Widget.AppCompat.SearchView">
+        <item name="queryBackground">@drawable/search_field_background</item>
+        <item name="submitBackground">@android:color/transparent</item>
+        <item name="searchHintIcon">@null</item>
+    </style>
+</resources>

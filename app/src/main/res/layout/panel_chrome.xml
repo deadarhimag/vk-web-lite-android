@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Общее для своих экранов поверх страницы (ui/PanelFrame.kt): плашка внизу («нет сети», «не удалось
+  обновить»), индикатор загрузки и пустой экран по центру (4.51 — со значком и кнопками). Подключается в FrameLayout панели.
+  Индикатор появляется с задержкой: если сохранённое прочитается быстрее, он не мелькнёт.
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <TextView
+        android:id="@+id/panel_banner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_margin="16dp"
+        android:background="@drawable/offline_pill"
+        android:elevation="4dp"
+        android:gravity="center"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceInverse"
+        android:visibility="gone" />
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/panel_progress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true"
+        android:visibility="invisible"
+        app:showDelay="@integer/progress_show_delay_ms" />
+
+    <!-- Пусто, нет сети, данные не пришли (4.51): значок, заголовок, пояснение, кнопки — ui/EmptyState.kt. -->
+    <FrameLayout
+        android:id="@+id/panel_status"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="@dimen/content_padding"
+        android:visibility="gone">
+
+        <include
+            layout="@layout/view_empty_state"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+    </FrameLayout>
+</merge>

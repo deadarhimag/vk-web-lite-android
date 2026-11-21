@@ -1,0 +1,7 @@
+{
+  "name": "vkweb-js-tests",
+  "private": true,
+  "description": "Проверки скриптов страницы (app/src/main/assets) в эмуляторе браузера jsdom",
+  "scripts": { "test": "node regressions.cjs && node music-diagnostics.cjs && node media-hooks.cjs && node playlist-tap.cjs && node dash-attribution.cjs && node compatibility.cjs && node music-operations.cjs && node last-good.cjs && node --test", "test:regressions": "node regressions.cjs && node music-diagnostics.cjs && node media-hooks.cjs && node playlist-tap.cjs && node dash-attribution.cjs && node compatibility.cjs && node music-operations.cjs && node last-good.cjs" },
+  "devDependencies": { "jsdom": "^24.0.0" }
+}

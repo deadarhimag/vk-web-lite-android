@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Подложка под счётчик «2 / 5» поверх фото: читается и на светлом, и на тёмном снимке. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/media_scrim" />
+    <corners android:radius="16dp" />
+</shape>

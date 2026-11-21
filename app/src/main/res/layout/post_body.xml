@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Текст и вложения поста; используется и для самого поста, и для записи, которой поделились. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/body_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:lineSpacingMultiplier="1.1"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorLink="?attr/colorPrimary" />
+
+    <TextView
+        android:id="@+id/body_more"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:text="@string/post_show_more"
+        android:textAppearance="?attr/textAppearanceLabelLarge"
+        android:textColor="?attr/colorPrimary" />
+
+    <!-- Первое фото — крупно, остальные — рядом снизу (до 4, на последнем «+N»). -->
+    <FrameLayout
+        android:id="@+id/body_main_photo_box"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp">
+
+        <com.example.vkweb.ui.AspectImageView
+            android:id="@+id/body_main_photo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/photo_placeholder"
+            android:contentDescription="@string/photo_description"
+            android:scaleType="centerCrop" />
+
+        <ImageView
+            android:id="@+id/body_main_play"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_gravity="center"
+            android:background="@drawable/play_overlay"
+            android:importantForAccessibility="no"
+            android:padding="14dp"
+            android:src="@drawable/ic_play"
+            app:tint="@color/media_on" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/body_thumbs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal" />
+
+    <LinearLayout
+        android:id="@+id/body_extras"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical" />
+</LinearLayout>

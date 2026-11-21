@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Цвет значков панели навигации управляется только с Android 8.1. -->
+    <style name="Theme.VkWeb.Dark" parent="Base.Theme.VkWeb.Dark">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <style name="Theme.VkWeb.Light" parent="Base.Theme.VkWeb.Light">
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

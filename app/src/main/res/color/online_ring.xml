@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Обводка отметки «в сети» (4.23): цвет того, что под строкой. Выделенная строка списка диалогов (isActivated —
+     передаётся и вложенным View) залита colorSecondaryContainer (drawable/dialog_row_background.xml). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorSecondaryContainer" android:state_activated="true" />
+    <item android:color="?android:attr/colorBackground" />
+</selector>

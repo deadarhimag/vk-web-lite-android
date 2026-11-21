@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Своя реакция под сообщением (4.61): с обводкой акцентом. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/colorSurface" />
+    <stroke android:width="2dp" android:color="?attr/colorPrimary" />
+    <corners android:radius="12dp" />
+</shape>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Голосовое сообщение в пузыре: кнопка «играть/пауза», полоса, время. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="240dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_attachment_card"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:padding="6dp">
+
+    <ImageButton
+        android:id="@+id/voice_toggle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/voice_play"
+        android:src="@drawable/ic_player_play" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Полоса перемотки (3.71): голосовое перематывается, как музыка. -->
+        <SeekBar
+            android:id="@+id/voice_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/voice_seek_description"
+            android:max="1000"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp" />
+
+        <!-- Ширина постоянная: время меняется каждые полсекунды, и при «по содержимому» каждая смена пересчитывала
+             раскладку всего списка — переписка во время голосового сама листалась. -->
+        <TextView
+            android:id="@+id/voice_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+</LinearLayout>

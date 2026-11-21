@@ -1,0 +1,28 @@
+/*
+ * Всегда применяется: прячет собственную нижнюю панель VK (лента, поиск, сообщения, клипы, меню),
+ * потому что навигация идёт через боковое меню приложения, и убирает место, которое VK под неё резервирует.
+ * Классы и переменные взяты из реальной вёрстки m.vk.ru (vkui Tabbar).
+ */
+.vkuiTabbar__host,
+.vkuiInternalTabbar,
+[class*="LayoutWrapper__vkPwaTabbarLayout"],
+[class*="vkPwaTabbar"] {
+  display: none !important;
+}
+
+/* Высота панели, от которой VK отсчитывает отступы содержимого. */
+:root {
+  --vkui_internal--tabbar_height: 0px !important;
+}
+
+/* Пустая распорка (48px) в самом низу корневого контейнера: держит место под панель. */
+#spa_global_root > [style*="spacing_gap_size:48px"] {
+  display: none !important;
+}
+
+/* Отступ снизу у самой страницы, если его добавил стиль панели. */
+html,
+body {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}

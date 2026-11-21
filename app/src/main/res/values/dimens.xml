@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="nav_width">288dp</dimen>
+    <dimen name="nav_header_padding">24dp</dimen>
+    <dimen name="content_padding">24dp</dimen>
+    <dimen name="progress_thickness">2dp</dimen>
+    <!-- Ширина экрана, начиная с которой меню закреплено слева (Material «expanded»). -->
+    <integer name="permanent_nav_min_width_dp">840</integer>
+    <!-- Индикатор загрузки появляется не сразу: быстрое (например, сохранённое) успевает без него. -->
+    <integer name="progress_show_delay_ms">300</integer>
+    <!-- Ширина списка диалогов в двух колонках (3.94). -->
+    <dimen name="messages_pane_width">340dp</dimen>
+    <!-- Предельная ширина пузыря сообщения (4.1): около 60–70 знаков в строке на планшете. -->
+    <dimen name="bubble_max_width">520dp</dimen>
+</resources>

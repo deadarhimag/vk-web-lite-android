@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Своё сообщение внутри «реплики»: без хвостика, хвостик — у последнего. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/colorBubbleOut" />
+    <corners android:radius="18dp" android:bottomRightRadius="8dp" />
+</shape>

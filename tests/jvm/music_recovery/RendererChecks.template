@@ -1,0 +1,108 @@
+object AppVisibility { var cacheRunning = true }
+class FakeBridge {
+    var disposed = false
+    fun dispose() { disposed = true }
+    fun music(action: String) {}
+}
+class FakeHandler {
+    val timers = ArrayList<Pair<Runnable, Long>>()
+    fun removeCallbacks(run: Runnable) { timers.removeAll { it.first === run } }
+    fun postDelayed(run: Runnable, delay: Long) { timers += run to delay }
+    fun fire() {
+        val (run, delay) = timers.removeAt(0)
+        android.os.SystemClock.now += delay; run.run()
+    }
+}
+class RendererHarness {
+    var app: Any? = Any()
+    var view: WebView? = WebView()
+    var pageScripts: Any? = Any()
+    val channel = FakeBridge()
+    var bridge: FakeBridge? = channel
+    var loadedUrl: String? = "https://m.vk.ru/audio"
+    var pageReady = true
+    val handler = FakeHandler()
+    val silence = Runnable {}
+    val pageTimeout = Runnable {}
+    val settle = Runnable {}
+    val epoch = MusicResolveEpoch("renderer-test")
+    val windowRecovery = com.example.vkweb.web.WindowRecoveryBudget()
+    var restoringWindow = false
+    val restoreWindow = Runnable { restoringWindow = false; pump() }
+    private val queue = ArrayDeque<Job>()
+    private val inFlight = LinkedHashMap<String, Job>()
+    val isBusy: Boolean get() = queue.isNotEmpty() || inFlight.isNotEmpty()
+    var pumpCalls = 0
+    var builds = 0
+    var buildFailure = false
+    val created = ArrayList<WebView>()
+    fun changed() {}
+    fun diagnose(stage: String) {}
+    fun scheduleIdle() {}
+    fun build(context: Any): WebView {
+        builds++; val page = WebView(); created += page; view = page
+        if (buildFailure) throw IllegalStateException("setup failure")
+        return page
+    }
+    private fun pump() { pruneInvalid(); if (isBusy && ensureView() != null) pumpCalls++ }
+    fun begin() { ensureView() }
+    fun stop() { cancelAll() }
+    fun seed(): CacheBatch {
+        val observer = CacheBatch(1) {}
+        val job = Job(MusicTrack("1_2", "title", "artist", 1, ""), MusicRecovery.DEFAULT_PAGE, observer)
+        inFlight["1_2"] = job; epoch.start(listOf("1_2")); return observer
+    }
+    /*RENDER_JOB*/
+    /*RENDER_PRUNE*/
+    /*RENDER_CANCEL*/
+    /*RENDER_ENSURE*/
+    /*RENDER_CALLBACK*/
+}
+object RendererChecks {
+    fun run(): Int {
+        var tests = 0
+        fun test(name: String, body: () -> Unit) {
+            MusicCache.generation = 1; MusicDownloadStarter.cancellation = 0; android.os.SystemClock.now = 0
+            body(); tests++; println("PASS $name")
+        }
+        test("renderer recovery preserves pending work and invalidates its old operation") {
+            val h = RendererHarness(); val batch = h.seed(); val dead = h.view!!
+            check(h.onRenderProcessGone(dead, android.webkit.RenderProcessGoneDetail()))
+            check(dead.destroyed && h.view == null && h.epoch.token.isEmpty())
+            check(batch.done == 0 && h.restoringWindow && h.handler.timers.single().second == 1000L)
+            h.handler.fire(); check(h.pumpCalls == 1 && h.view != null && batch.done == 0)
+        }
+        test("renderer burst exhausts its bounded restart budget and finishes pending work once") {
+            val h = RendererHarness(); val batch = h.seed()
+            repeat(2) { h.onRenderProcessGone(h.view!!, android.webkit.RenderProcessGoneDetail()); h.handler.fire() }
+            h.onRenderProcessGone(h.view!!, android.webkit.RenderProcessGoneDetail())
+            check(batch.failed == 1 && h.handler.timers.isEmpty() && !h.isBusy)
+        }
+        test("stop during renderer backoff cancels work and removes the restore callback") {
+            val h = RendererHarness(); val batch = h.seed()
+            h.onRenderProcessGone(h.view!!, android.webkit.RenderProcessGoneDetail()); h.stop()
+            check(batch.cancelled == 1 && h.handler.timers.isEmpty() && !h.restoringWindow && h.pumpCalls == 0)
+        }
+        test("stale renderer callback cannot tear down the current window or bridge") {
+            val h = RendererHarness(); h.seed(); val old = WebView(); val current = h.view; val active = FakeBridge(); h.bridge = active
+            h.onRenderProcessGone(old, android.webkit.RenderProcessGoneDetail())
+            check(old.destroyed && h.channel.disposed && !active.disposed && h.view === current && h.handler.timers.isEmpty())
+        }
+        test("cache clear while restoring cancels the old work before another window is created") {
+            val h = RendererHarness(); val batch = h.seed()
+            h.onRenderProcessGone(h.view!!, android.webkit.RenderProcessGoneDetail()); MusicCache.generation++; h.handler.fire()
+            check(batch.cancelled == 1 && h.view == null && h.builds == 0)
+        }
+        test("constructor setup failure cleans the partial view and can recover automatically") {
+            val h = RendererHarness(); val batch = h.seed(); h.view = null; h.buildFailure = true; h.begin()
+            check(h.created.single().destroyed && batch.done == 0 && h.restoringWindow)
+            h.buildFailure = false; h.handler.fire(); check(h.view != null && h.builds == 2 && h.pumpCalls == 1)
+        }
+        test("repeated setup failure cannot recreate windows indefinitely") {
+            val h = RendererHarness(); val batch = h.seed(); h.view = null; h.buildFailure = true; h.begin()
+            h.handler.fire(); h.handler.fire()
+            check(h.builds == 3 && batch.failed == 1 && h.handler.timers.isEmpty() && !h.isBusy)
+        }
+        return tests
+    }
+}

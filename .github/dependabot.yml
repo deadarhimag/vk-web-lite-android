@@ -1,0 +1,24 @@
+# Обновления библиотек (4.2): раз в неделю Dependabot предлагает pull request с новыми версиями, а Actions (build.yml)
+# сразу проверяет его тестами, Lint и сборкой. Обновлять вслепую нельзя: новые Media3, webkit и activity требуют
+# свежий compileSdk и Android Gradle Plugin — такие PR приходят вместе и сливаются, только если сборка зелёная.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # 4.78: webkit 1.15+ объявил API скрытия X-Requested-With ненужным — а им «Скрывать сведения об устройстве» не
+      # выдаёт VK имя пакета (WebViewSetup.hideDevice). Обновлять только вместе с проверкой заголовка вручную.
+      - dependency-name: "androidx.webkit:webkit"
+        versions: [">=1.15.0"]
+    groups:
+      media3:
+        patterns: ["androidx.media3:*"]
+      android-build:
+        patterns: ["com.android.application*", "org.jetbrains.kotlin*"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly

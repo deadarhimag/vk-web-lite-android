@@ -1,0 +1,18 @@
+/*
+ * Применяется при включённом «Скрывать клипы». Блоки коротких видео на страницах групп и профилей.
+ * Классы VK меняются, поэтому основную работу делает скрипт assets/vk_lite/20_ads.js (данные API и ссылки на /clip…),
+ * а здесь — только устойчивые признаки из вёрстки m.vk.ru.
+ * На странице отдельного клипа (/clip-1_2) скрипт ставит html[data-vklite-clip-page]: плеер клипа тоже называется ShortVideo…,
+ * и без этого признака он был бы спрятан.
+ */
+html:not([data-vklite-clip-page]) [class*="ShortVideo"],
+html:not([data-vklite-clip-page]) [class*="short_video"],
+html:not([data-vklite-clip-page]) [class*="ClipsBlock"],
+html:not([data-vklite-clip-page]) [class*="ClipsCarousel"],
+html:not([data-vklite-clip-page]) [class*="ProfileClips"],
+html:not([data-vklite-clip-page]) [class*="GroupClips"],
+html:not([data-vklite-clip-page]) a[href^="/clips"],
+html:not([data-vklite-clip-page]) a[href^="https://m.vk.com/clips"],
+html:not([data-vklite-clip-page]) a[href^="https://m.vk.ru/clips"] {
+  display: none !important;
+}

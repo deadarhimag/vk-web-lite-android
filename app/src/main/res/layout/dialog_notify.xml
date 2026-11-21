@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Уведомления диалога на этом телефоне (4.47): режим и «скрывать текст». Заполняется в messages/DialogNotifyDialog.kt. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="24dp">
+
+        <!-- Почему настройка сейчас ничего не даст: выключено всё или нет фоновой проверки. -->
+        <TextView
+            android:id="@+id/notify_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <RadioGroup
+            android:id="@+id/notify_modes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/notify_mode_default"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/notify_mode_default"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/notify_mode_always"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/notify_mode_always"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/notify_mode_silent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/notify_mode_silent"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+
+            <com.google.android.material.radiobutton.MaterialRadioButton
+                android:id="@+id/notify_mode_off"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:text="@string/notify_mode_off"
+                android:textAppearance="?attr/textAppearanceBodyLarge" />
+        </RadioGroup>
+
+        <com.google.android.material.divider.MaterialDivider
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/notify_hide_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="@string/notify_hide_text"
+            android:textAppearance="?attr/textAppearanceBodyLarge" />
+    </LinearLayout>
+</ScrollView>

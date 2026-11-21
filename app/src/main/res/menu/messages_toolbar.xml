@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!-- Поиск по диалогам (3.94): по названию, среди уже загруженных; виден только на списке диалогов. -->
+    <item
+        android:id="@+id/action_search"
+        android:icon="@drawable/ic_search"
+        android:title="@string/dialogs_search"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"
+        app:showAsAction="ifRoom|collapseActionView" />
+    <!-- Поиск в открытой переписке (4.0): по загруженным сообщениям, с переходом к найденному. С 4.10 — поле в панели,
+         как поиск по диалогам (было отдельным окном). -->
+    <item
+        android:id="@+id/action_find"
+        android:icon="@drawable/ic_search"
+        android:title="@string/chat_find"
+        android:visible="false"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"
+        app:showAsAction="ifRoom|collapseActionView" />
+    <item
+        android:id="@+id/action_reload"
+        android:icon="@drawable/ic_refresh"
+        android:title="@string/action_refresh"
+        app:showAsAction="ifRoom" />
+    <!-- Уведомления открытой переписки на этом телефоне (4.47); виден только в переписке. -->
+    <item
+        android:id="@+id/action_chat_notify"
+        android:title="@string/chat_notify"
+        android:visible="false"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_open_site"
+        android:title="@string/lite_open_site"
+        app:showAsAction="never" />
+</menu>

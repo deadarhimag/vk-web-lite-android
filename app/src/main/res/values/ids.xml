@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ImageCache: какая картинка запрошена для ImageView и какая в нём уже показана. -->
+    <item name="image_cache_requested" type="id" />
+    <item name="image_cache_shown" type="id" />
+    <!-- VoicePlayer: наблюдатель за состоянием хранится в карточке голосового сообщения. -->
+    <item name="voice_observer" type="id" />
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Значок ярлыка «messages» (3.94): знак раздела (ic_section_messages) на круге цвета значка приложения. Без цветов темы: ярлыки
+     рисует лаунчер, ?attr там не работает. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="@color/launcher_background"
+        android:pathData="M480,0a480,480 0,1 1,0 960a480,480 0,1 1,0 -960z" />
+    <group
+        android:pivotX="480"
+        android:pivotY="480"
+        android:scaleX="0.5"
+        android:scaleY="0.5">
+        <group android:translateY="960">
+            <path
+                android:fillColor="@android:color/white"
+                android:pathData="M240-400h320v-80H240v80Zm0-120h480v-80H240v80Zm0-120h480v-80H240v80ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z" />
+        </group>
+    </group>
+</vector>

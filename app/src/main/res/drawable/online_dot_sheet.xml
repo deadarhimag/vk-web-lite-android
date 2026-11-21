@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Отметка «в сети» в нижней панели (выбор получателя пересылки, 4.24): обводка цветом панели. Панели Material 3
+     залиты colorSurfaceContainerLow, а не цветом фона экрана, — с online_dot вокруг точки было видно серое кольцо. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="?attr/colorOnline" />
+    <stroke android:width="2dp" android:color="?attr/colorSurfaceContainerLow" />
+</shape>
