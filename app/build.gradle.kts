@@ -118,5 +118,5 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     // В unit-тестах android.jar — заглушка: JSONObject там бросает «Method ... not mocked». Без настоящей реализации
     // тесты разбора сообщений страницы (PayloadRoundTripTest, OwnerPayloadRoundTripTest и др.) падали бы в Gradle.
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260814")
 }
