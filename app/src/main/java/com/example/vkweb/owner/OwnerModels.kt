@@ -218,6 +218,7 @@ data class OwnerPayload(
     val posts: List<WallPost>,
     val hasMore: Boolean,
     val wallSeen: Boolean,
+    val snapshot: Boolean = false,
 ) {
     /**
      * Картинки страницы для заблаговременной загрузки: фото владельца, обложка, а у первых записей — авторы и
@@ -264,6 +265,7 @@ data class OwnerPayload(
                 }
             }
             return OwnerPayload(
+                snapshot = json.optBoolean("snapshot"),
                 key = key,
                 ownerId = ownerId,
                 header = json.optJSONObject("header")?.let(OwnerHeader::fromJson),
@@ -271,6 +273,21 @@ data class OwnerPayload(
                 hasMore = json.optBoolean("hasMore"),
                 wallSeen = json.optBoolean("wallSeen"),
             )
+        }
+    }
+}
+
+internal data class OwnerRefreshResult(val operation: String, val key: String, val reason: String, val payload: OwnerPayload?) {
+    companion object {
+        const val TYPE = "ownerRefresh"
+
+        fun fromJson(json: JSONObject): OwnerRefreshResult? {
+            val operation = json.optString("operation")
+            val key = safePath(json.optString("key"))
+            if (!operation.matches(Regex("[0-9]{1,16}")) || key.isEmpty()) return null
+            val payload = json.optJSONObject("payload")?.let(OwnerPayload::fromJson)
+                ?.takeIf { it.wallSeen && !it.snapshot && OwnerPath.sameKey(key, it.key) }
+            return OwnerRefreshResult(operation, key, json.optString("reason"), payload)
         }
     }
 }

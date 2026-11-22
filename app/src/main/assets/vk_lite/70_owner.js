@@ -26,6 +26,8 @@
 
     var state = null;
     var channel = createChannel(NOTIFY_MS, buildPayload);
+    var refreshJob = null;
+    var resending = false;
 
     function isFeedPage() { return FEED_PATH.test(location.pathname) && !/[?&]section=/.test(location.search); }
 
@@ -306,7 +308,20 @@
         case 'utils.resolveScreenName':
           return onResolve(s, params, r);
         default:
-          return onWall(s, params, r);
+          if (!onWall(s, params, r)) return false;
+          if ((method === 'owners.getMainTab' || method === 'wall.get') && params && s.ownerId &&
+              s.ownerId !== FEED_ID && num(params.owner_id) === s.ownerId && !num(params.offset) &&
+              (!s.wallRequest || !params.start_from)) {
+            // Первую страницу обновляем тем же методом и с теми же настройками выдачи.
+            var query = { owner_id: s.ownerId, offset: 0 };
+            ['count', 'ref', 'fields', 'filters', 'forced_blocks', 'device_info', 'isFirstLanding',
+              'filter', 'extended'].forEach(function (k) {
+              if (typeof params[k] === 'string' || typeof params[k] === 'number' || typeof params[k] === 'boolean') query[k] = params[k];
+            });
+            if (method === 'owners.getMainTab') query.start_from = '';
+            s.wallRequest = { method: method, query: query };
+          }
+          return true;
       }
     }
 
@@ -319,6 +334,7 @@
       return {
         type: 'owner',
         key: s.key,
+        snapshot: resending,
         ownerId: s.ownerId,
         header: header,
         wallSeen: s.wallSeen,
@@ -328,6 +344,46 @@
     }
 
     ResponseTap.listenApi(isOwnerPage, METHODS, onCall, function () { channel.schedule(); retrySeen(); });
+
+    function cancelRefresh() {
+      if (!refreshJob) return;
+      var job = refreshJob;
+      refreshJob = null;
+      clearTimeout(job.timer);
+      job.controller.abort();
+    }
+
+    onRouteChange(function () {
+      if (refreshJob && refreshJob.generation !== window.__vkCompat.generation()) cancelRefresh();
+    });
+
+    function refresh(operation, key) {
+      if (!/^\d{1,16}$/.test(operation) || pathKey() !== key) return false;
+      var s = current();
+      cancelRefresh();
+      function result(reason, payload) {
+        postToApp({ type: 'ownerRefresh', operation: operation, key: key, reason: reason, payload: payload || null });
+      }
+      if (!s.wallRequest || !VkApi.ready()) { result('unavailable'); return true; }
+      var request = s.wallRequest;
+      var job = { generation: window.__vkCompat.generation(), controller: new AbortController(), timer: 0 };
+      refreshJob = job;
+      function finish(error, response) {
+        if (refreshJob !== job) return;
+        cancelRefresh();
+        if (s !== current() || job.generation !== window.__vkCompat.generation()) return;
+        if (error) { result(/^ошибка API 15(?::|$)/.test(error) ? 'denied' : 'request'); return; }
+        if (response && response.response && typeof response.response === 'object') response = response.response;
+        if (!onWall(s, request.query, response)) { result('invalid'); return; }
+        result('', buildPayload());
+      }
+      job.timer = setTimeout(function () { finish('timeout'); }, 10000);
+      try {
+        VkApi.call(request.method, request.query, finish, false,
+          { signal: job.controller.signal, skipPageApi: true });
+      } catch (e) { finish('request'); }
+      return true;
+    }
 
     /**
      * Лайк записи [key] («владелец_номер»): likes.add / likes.delete от имени страницы. Итог — сообщением type = "like"
@@ -557,7 +613,12 @@
           PageList.scrollToEnd();
           return true;
         }
-        if (action === 'sync') { channel.resend(); return true; }
+        if (action === 'sync') {
+          resending = true;
+          try { channel.resend(); } finally { resending = false; }
+          return true;
+        }
+        if (action === 'refresh') return refresh(String(a || ''), String(b || ''));
         if (action === 'seen') return seen(a);
         return false;
       }

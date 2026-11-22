@@ -32,6 +32,7 @@ abstract class PageOverlay(
 
     /** Свежее не пришло вовремя, показано сохранённое. */
     private var stale = false
+    @StringRes private var updateError: Int? = null
 
     /** Уже пробовали обновить сессию для этой страницы: второй раз не зацикливаемся. */
     private var triedRefresh = false
@@ -76,6 +77,10 @@ abstract class PageOverlay(
 
     /** Попросить страницу прислать данные заново. */
     protected abstract fun requestFresh()
+
+    protected open fun requestUpdate() = requestFresh()
+
+    protected open fun onUpdateTimeout(): Boolean = false
 
     /** Показать сохранённое, пока свежее не пришло. */
     protected abstract fun loadSaved()
@@ -127,9 +132,10 @@ abstract class PageOverlay(
         logInfo("свежее запрошено с пустого экрана")
         waitingSince = SystemClock.elapsedRealtime()
         stale = false
-        requestFresh()
+        updateError = null
         armFallback()
         panel.setBanner(currentBanner())
+        requestUpdate()
         return true
     }
 
@@ -206,14 +212,16 @@ abstract class PageOverlay(
     protected fun onPageChanged() {
         showsPage = false
         stale = false
+        updateError = null
         triedRefresh = false
     }
 
     /** Свежие данные пришли: ждать больше нечего, плашки не нужны. */
-    protected fun onFreshData() {
+    protected fun onFreshData(snapshot: Boolean = false) {
         if (waitingSince != 0L) {
             logInfo(
-                "свежие данные получены", "мс" to SystemClock.elapsedRealtime() - waitingSince,
+                if (snapshot) "получен снимок страницы" else "свежие данные получены",
+                "мс" to SystemClock.elapsedRealtime() - waitingSince,
                 "после обновления сессии" to triedRefresh.takeIf { it },
             )
             waitingSince = 0L
@@ -222,12 +230,31 @@ abstract class PageOverlay(
         host.cancel(autoPage)
         panel.frame.pullDone()
         stale = false
+        updateError = null
         triedRefresh = false
+        panel.setBanner(currentBanner())
+    }
+
+    protected fun onUpdateFailed(@StringRes message: Int) {
+        host.cancel(fallback)
+        host.cancel(autoPage)
+        waitingSince = 0L
+        panel.frame.pullDone()
+        updateError = message
+        if (!panel.hasData) {
+            panel.frame.showEmpty(
+                EmptyState.Content(
+                    message, R.drawable.ic_cloud_off, R.string.empty_timeout_body,
+                    action = panel.frame.retryAction(R.string.empty_wait_more),
+                ),
+            )
+        }
         panel.setBanner(currentBanner())
     }
 
     private fun currentBanner(): Int? = when {
         !host.isOnline -> offlineBanner
+        updateError != null -> updateError
         stale -> R.string.stale_banner
         else -> null
     }
@@ -238,6 +265,7 @@ abstract class PageOverlay(
     }
 
     private fun onFreshTimeout() {
+        if (onUpdateTimeout()) return
         // Потягивание (4.52): индикатор крутится не дольше одного ожидания; дальше — плашка или выбор, как всегда.
         if (panel.frame.isPulling) {
             panel.frame.pullDone()
