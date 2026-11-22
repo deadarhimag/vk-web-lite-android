@@ -16,7 +16,7 @@ VK Web Lite — облегчённый Android-клиент для мобиль�
 
 ## Сборка
 
-Понадобятся JDK 17, Android SDK Platform 35, Android SDK Build-Tools 34.0.0 и доступ к Google Maven, Maven Central и серверу дистрибутивов Gradle. Проект использует Kotlin 2.0.21, Android Gradle Plugin 8.6.1 и Gradle Wrapper 8.7. Устанавливать Gradle отдельно не требуется. В Windows разместите проект в каталоге с ASCII-путём, например `C:/projects/vk-web-lite-android`.
+Понадобятся JDK 17, Android SDK Platform 35, Android SDK Build-Tools 36.0.0 и доступ к Google Maven, Maven Central и серверу дистрибутивов Gradle. Проект использует встроенный Kotlin с компилятором 2.4.21, Android Gradle Plugin 9.5.2 и Gradle Wrapper 9.6.0. Устанавливать Gradle отдельно не требуется. В Windows разместите проект в каталоге с ASCII-путём, например `C:/projects/vk-web-lite-android`.
 
 **Android Studio.** Откройте каталог с `settings.gradle.kts`, выберите JDK 17 в настройках Gradle и установите SDK через SDK Manager. После Gradle Sync выберите вариант `debug` и запустите модуль `app` на устройстве или эмуляторе.
 
