@@ -55,6 +55,9 @@ class CommentsSheet private constructor(
     private val expandedTexts = com.example.vkweb.owner.ExpandedTexts()
     /** Строка записи над комментариями, если открыт экран записи. */
     private val headerCount: Int get() = if (post != null) 1 else 0
+    /** Состояние под записью (загрузка, ошибка, пусто): строка внутри списка, а не поверх него; 0 - нет. */
+    private var footerText = 0
+    private val footerCount: Int get() = if (post != null && footerText != 0) 1 else 0
     private lateinit var dialog: BottomSheetDialog
     private lateinit var title: TextView
     private lateinit var status: View
@@ -103,8 +106,7 @@ class CommentsSheet private constructor(
         // Высота списка — около двух третей экрана: шторка не скачет, пока приходят комментарии. Экран записи выше.
         view.findViewById<View>(R.id.comments_body).layoutParams.height =
             (activity.resources.displayMetrics.heightPixels * (if (post != null) POST_BODY_SHARE else BODY_SHARE)).toInt()
-        // Над списком запись: строка «загрузка, пусто» внизу, чтобы не закрывать её.
-        if (post != null) (status.layoutParams as android.widget.FrameLayout.LayoutParams).gravity = android.view.Gravity.BOTTOM
+        // Над списком запись: «загрузка, пусто» - строкой списка под ней (showStatus), а не поверх.
         val list = view.findViewById<RecyclerView>(R.id.comments_list)
         val layout = LinearLayoutManager(activity)
         list.layoutManager = layout
@@ -211,7 +213,7 @@ class CommentsSheet private constructor(
         hasMore = page.hasMore
         title.text = if (page.total > 0) activity.getString(R.string.comments_title_count, page.total) else activity.getString(R.string.comments_title)
         render()
-        if (tree.isEmpty) showStatus(R.string.comments_empty) else status.visibility = View.GONE
+        if (tree.isEmpty) showStatus(R.string.comments_empty) else hideStatus()
         // Порция целиком из удалённых — сразу следующая, иначе прокручивать нечего.
         if (page.items.isEmpty() && hasMore) loadMore()
     }
@@ -258,6 +260,10 @@ class CommentsSheet private constructor(
      * «пусто» — со значком комментариев, загрузка — только строка.
      */
     private fun showStatus(text: Int) {
+        if (post != null) {
+            setFooter(text)
+            return
+        }
         statusState.show(
             when (text) {
                 R.string.comments_failed -> com.example.vkweb.ui.EmptyState.Content(
@@ -274,10 +280,21 @@ class CommentsSheet private constructor(
         status.visibility = View.VISIBLE
     }
 
+    private fun hideStatus() {
+        if (post != null) setFooter(0) else status.visibility = View.GONE
+    }
+
+    private fun setFooter(text: Int) {
+        val before = footerCount
+        footerText = text
+        if (before == 1 && footerCount == 1) adapter.notifyItemChanged(headerCount + rows.size) else adapter.notifyDataSetChanged()
+    }
+
     private inner class Adapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        override fun getItemCount() = rows.size + headerCount
+        override fun getItemCount() = rows.size + headerCount + footerCount
         override fun getItemViewType(position: Int) = when {
             position < headerCount -> TYPE_POST
+            position >= headerCount + rows.size -> TYPE_FOOTER
             rows[position - headerCount] is CommentRows.Row.More -> TYPE_MORE
             else -> TYPE_COMMENT
         }
@@ -285,6 +302,7 @@ class CommentsSheet private constructor(
             val inflater = LayoutInflater.from(parent.context)
             return when (viewType) {
                 TYPE_POST -> PostHolder(inflater.inflate(R.layout.item_post, parent, false), SheetActions(), expandedTexts, { 0L }, standalone = true)
+                TYPE_FOOTER -> FooterHolder(inflater.inflate(R.layout.item_comments_footer, parent, false))
                 TYPE_MORE -> MoreHolder(inflater.inflate(R.layout.item_comment_more, parent, false))
                 else -> Holder(inflater.inflate(R.layout.item_comment, parent, false))
             }
@@ -292,6 +310,10 @@ class CommentsSheet private constructor(
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             if (position < headerCount) {
                 post?.let { (holder as PostHolder).bind(it) }
+                return
+            }
+            if (position >= headerCount + rows.size) {
+                (holder as FooterHolder).bind(footerText)
                 return
             }
             when (val row = rows[position - headerCount]) {
@@ -333,6 +355,25 @@ class CommentsSheet private constructor(
     private fun indent(view: View, depth: Int) {
         val start = Views.dp(view, if (depth > 0) REPLY_INDENT_DP else ROW_PADDING_DP)
         view.setPaddingRelative(start, view.paddingTop, view.paddingEnd, view.paddingBottom)
+    }
+
+    /** Под записью: пусто - только значок, загрузка и ошибка - со строкой (ошибку нажатием можно повторить). */
+    private inner class FooterHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val text: TextView = view.findViewById(R.id.comments_footer_text)
+
+        fun bind(state: Int) {
+            val empty = state == R.string.comments_empty
+            text.visibility = if (empty) View.GONE else View.VISIBLE
+            text.setText(if (state == R.string.comments_failed) R.string.comments_failed_title else state)
+            itemView.contentDescription = activity.getString(if (empty) R.string.comments_empty else R.string.comments_title)
+            itemView.setOnClickListener(
+                if (state == R.string.comments_failed) View.OnClickListener {
+                    showStatus(R.string.comments_loading)
+                    request(0)
+                } else null,
+            )
+            itemView.isClickable = state == R.string.comments_failed
+        }
     }
 
     private inner class MoreHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -402,6 +443,7 @@ class CommentsSheet private constructor(
         private const val TYPE_COMMENT = 0
         private const val TYPE_MORE = 1
         private const val TYPE_POST = 2
+        private const val TYPE_FOOTER = 3
 
         /**
          * Открыть комментарии к «владелец_номер» [videoId]. Нет страницы главного окна или номера — сразу [onOpenPage].
