@@ -203,7 +203,11 @@
       var ownerId = feed ? 0 : num(params && params.owner_id);
       if (s.ownerId && ownerId && ownerId !== s.ownerId) return false;
       if (!s.ownerId && ownerId) s.ownerId = ownerId;
-      if (!num(params && params.offset) && !(params && params.start_from)) { s.posts = {}; s.order = []; }
+      if (!num(params && params.offset) && !(params && params.start_from)) {
+        s.headSeen = true;
+        s.posts = {};
+        s.order = [];
+      }
       rememberAll(s.users, r.profiles);
       rememberAll(s.groups, r.groups);
       s.wallSeen = true;
@@ -335,6 +339,7 @@
         type: 'owner',
         key: s.key,
         snapshot: resending,
+        needsWallHead: s.ownerId < 0 && !!s.wallRequest && !s.headSeen,
         ownerId: s.ownerId,
         header: header,
         wallSeen: s.wallSeen,

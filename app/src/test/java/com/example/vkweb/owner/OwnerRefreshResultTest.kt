@@ -22,6 +22,9 @@ class OwnerRefreshResultTest {
     @Test fun oldSnapshotOrAnotherRouteCannotSatisfyARefresh() {
         val wall = JSONObject().put("key", "/club42").put("ownerId", -42).put("wallSeen", true)
         assertNull(OwnerRefreshResult.fromJson(response(wall.put("snapshot", true)))?.payload)
+        wall.put("snapshot", false).put("needsWallHead", true)
+        assertNull(OwnerRefreshResult.fromJson(response(wall))?.payload)
+        wall.put("needsWallHead", false)
         assertNull(OwnerRefreshResult.fromJson(response(wall.put("snapshot", false).put("key", "/club43")))?.payload)
     }
 }

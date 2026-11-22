@@ -908,6 +908,24 @@ test('сообщество: снимок и успешное сетевое об
   w.close();
 });
 
+test('сообщество: стена с курсором отмечена до получения начала со свежими записями', async () => {
+  const w = ownerPage('https://m.vk.ru/club42');
+  await readOwner(w);
+  assert.equal(lastOf(w, 'owner').needsWallHead, true);
+  const head = JSON.parse(wallResponse);
+  head.response.items.unshift({ id: 8, owner_id: -42, from_id: -42, date: 1700300000, text: 'Новый пост' });
+  head.response.count = 2;
+  w.reply = (_url, body) => new URLSearchParams(body).get('start_from') === '' ? JSON.stringify(head) : wallResponse;
+  assert.equal(w.__vkLite.owner('refresh', '1', '/club42'), true);
+  await wait(35);
+  const result = lastOf(w, 'ownerRefresh').payload;
+  assert.equal(result.needsWallHead, false);
+  assert.deepEqual(result.posts.map(post => post.key), ['-42_8', '-42_7']);
+  w.__vkLite.owner('sync');
+  assert.equal(lastOf(w, 'owner').needsWallHead, false);
+  w.close();
+});
+
 test('сообщество: сетевой сбой и отказ VK оставляют прежний снимок', async () => {
   const w = ownerPage('https://m.vk.ru/club42');
   await readOwner(w);

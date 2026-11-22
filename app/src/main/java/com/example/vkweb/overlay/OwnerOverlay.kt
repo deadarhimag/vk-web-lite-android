@@ -46,6 +46,7 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
     private var refreshSequence = 0L
     private var pendingRefresh: String? = null
     private var refreshFailed = false
+    private var wallHeadRequested = false
 
     init {
         host.bridge.on(OwnerPayload.TYPE, OwnerPayload::fromJson, ::onPayload)
@@ -80,6 +81,7 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
     override fun requestUpdate() {
         val k = key ?: return
         if (OwnerPath.isFeed(k)) return requestFresh()
+        wallHeadRequested = true
         val operation = (++refreshSequence).toString()
         pendingRefresh = operation
         refreshFailed = false
@@ -150,9 +152,13 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         host.prefetchImages(payload.imageUrls())
         if (payload.header != null || OwnerPath.isFeed(payload.key)) {
             knownKeys += OwnerPath.keyOf(payload.key).lowercase()
-            if (pendingRefresh == null && !refreshFailed) onFreshData(payload.snapshot)
+            if (pendingRefresh == null && !refreshFailed) onFreshData(payload.snapshot || payload.needsWallHead)
             // Сохраняем то, что на экране: свежие записи и ещё не догруженные из прежнего сохранения.
             panel.current?.let(host.store::saveOwner)
+        }
+        if (payload.needsWallHead && isShown && host.isOnline && !wallHeadRequested) {
+            logInfo("стена получена с курсором, запрошено начало стены")
+            startUpdate()
         }
         host.onOverlayChanged()
     }
@@ -184,6 +190,7 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         key = newKey
         pendingRefresh = null
         refreshFailed = false
+        wallHeadRequested = false
         onPageChanged()
         val now = android.os.SystemClock.elapsedRealtime()
         // 4.0, отчёт 16:19: сообщество из списка открывается как /club1, а VK тут же перенаправляет на короткое имя

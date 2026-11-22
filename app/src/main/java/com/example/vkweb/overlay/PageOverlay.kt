@@ -130,13 +130,17 @@ abstract class PageOverlay(
             return false
         }
         logInfo("свежее запрошено с пустого экрана")
+        startUpdate()
+        return true
+    }
+
+    protected fun startUpdate() {
         waitingSince = SystemClock.elapsedRealtime()
         stale = false
         updateError = null
         armFallback()
         panel.setBanner(currentBanner())
         requestUpdate()
-        return true
     }
 
     /** Вместо своего экрана — страница VK: по кнопке на выборе или сама, если выбора не сделали. */
