@@ -98,7 +98,7 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         if (!isShown || result.operation != pendingRefresh || !OwnerPath.sameKey(key, result.key)) return
         val payload = result.payload
         if (result.reason.isNotEmpty() || payload == null) {
-            finishRefreshFailure(result.reason.ifEmpty { "invalid" })
+            finishRefreshFailure(result.reason.ifEmpty { "invalid" }, result.detail)
             return
         }
         pendingRefresh = null
@@ -106,17 +106,21 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         if (payload.header == null) onFreshData()
     }
 
-    private fun finishRefreshFailure(reason: String) {
+    private fun finishRefreshFailure(reason: String, detail: String = "") {
         pendingRefresh = null
-        refreshFailed = true
         val denied = reason == "denied"
-        logWarn("сетевое обновление не выполнено", "отказ VK" to denied)
-        val message = when {
-            denied -> R.string.owner_refresh_denied
-            panel.hasData -> R.string.stale_banner
-            else -> R.string.pull_failed
+        logWarn("сетевое обновление не выполнено", "отказ VK" to denied, "причина" to reason, "ответ" to detail.ifEmpty { null })
+        // 5.00.16: VK не отказал в доступе - как до 5.00.15: страница присылает свои данные заново. Иначе (отчёт 22.11)
+        // каждое обновление сообщества кончалось ошибкой, и данные страницы больше не считались свежими.
+        if (!denied) {
+            refreshFailed = false
+            logInfo("обновление - данными страницы")
+            requestFresh()
+            return
         }
-        onUpdateFailed(message)
+        // Отказ VK (нет доступа к стене) - так и сказать
+        refreshFailed = true
+        onUpdateFailed(R.string.owner_refresh_denied)
     }
 
     override fun loadSaved() {

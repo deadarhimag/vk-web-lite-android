@@ -94,7 +94,14 @@ jobs:
         run: |
           build_tools="${ANDROID_HOME:?}/build-tools/36.0.0"
           expected_certificate=915f50c1faf74d20eb0b81972a9adbb0d01416637c97c9fe197b0bb80e0d128f
-          expected_package="package: name='io.github.deadarhimag.vkweblite' versionCode='223' versionName='5.00.15'"
+          # Версия - из app/build.gradle.kts: при подъёме версии проверку править не нужно
+          version_code=$(sed -nE 's/^ *versionCode = ([0-9]+).*/\1/p' app/build.gradle.kts)
+          version_name=$(sed -nE 's/^ *versionName = "([^"]+)".*/\1/p' app/build.gradle.kts)
+          if [[ -z "$version_code" || -z "$version_name" ]]; then
+            echo '::error::Version not found in app/build.gradle.kts'
+            exit 1
+          fi
+          expected_package="package: name='io.github.deadarhimag.vkweblite' versionCode='$version_code' versionName='$version_name'"
           shopt -s nullglob
           apks=(app/build/outputs/apk/release/*.apk)
           if (( ${#apks[@]} != 3 )); then

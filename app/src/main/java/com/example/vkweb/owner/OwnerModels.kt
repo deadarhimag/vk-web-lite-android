@@ -279,7 +279,14 @@ data class OwnerPayload(
     }
 }
 
-internal data class OwnerRefreshResult(val operation: String, val key: String, val reason: String, val payload: OwnerPayload?) {
+/** Итог сетевого обновления стены: [reason] пусто - успех; [detail] - что ответил VK, для журнала (5.00.16). */
+internal data class OwnerRefreshResult(
+    val operation: String,
+    val key: String,
+    val reason: String,
+    val payload: OwnerPayload?,
+    val detail: String = "",
+) {
     companion object {
         const val TYPE = "ownerRefresh"
 
@@ -289,7 +296,7 @@ internal data class OwnerRefreshResult(val operation: String, val key: String, v
             if (!operation.matches(Regex("[0-9]{1,16}")) || key.isEmpty()) return null
             val payload = json.optJSONObject("payload")?.let(OwnerPayload::fromJson)
                 ?.takeIf { it.wallSeen && !it.snapshot && !it.needsWallHead && OwnerPath.sameKey(key, it.key) }
-            return OwnerRefreshResult(operation, key, json.optString("reason"), payload)
+            return OwnerRefreshResult(operation, key, json.optString("reason").take(40), payload, json.optString("detail").take(160))
         }
     }
 }

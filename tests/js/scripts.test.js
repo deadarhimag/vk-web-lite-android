@@ -902,7 +902,8 @@ test('сообщество: снимок и успешное сетевое об
   await wait(35);
   assert.equal(w.requests.length, before + 1);
   const args = new URLSearchParams(w.requests.at(-1).body);
-  assert.deepEqual(['owner_id', 'count', 'offset', 'start_from', 'fields'].map(k => args.get(k)), ['-42', '10', '0', '', 'photo_100']);
+  assert.deepEqual(['owner_id', 'count', 'offset', 'fields'].map(k => args.get(k)), ['-42', '10', '0', 'photo_100']);
+  assert.equal(args.has('start_from'), false, '5.00.16: пустой start_from не передаётся');
   const result = lastOf(w, 'ownerRefresh');
   assert.deepEqual([result.operation, result.reason, result.payload.snapshot, result.payload.posts[0].key], ['1', '', false, '-42_7']);
   w.close();
@@ -915,7 +916,7 @@ test('сообщество: стена с курсором отмечена до
   const head = JSON.parse(wallResponse);
   head.response.items.unshift({ id: 8, owner_id: -42, from_id: -42, date: 1700300000, text: 'Новый пост' });
   head.response.count = 2;
-  w.reply = (_url, body) => new URLSearchParams(body).get('start_from') === '' ? JSON.stringify(head) : wallResponse;
+  w.reply = (_url, body) => !new URLSearchParams(body).has('start_from') ? JSON.stringify(head) : wallResponse;
   assert.equal(w.__vkLite.owner('refresh', '1', '/club42'), true);
   await wait(35);
   const result = lastOf(w, 'ownerRefresh').payload;
@@ -933,6 +934,7 @@ test('сообщество: сетевой сбой и отказ VK остав�
   w.__vkLite.owner('refresh', '1', '/club42');
   await wait(35);
   assert.deepEqual([lastOf(w, 'ownerRefresh').reason, lastOf(w, 'ownerRefresh').payload], ['request', null]);
+  assert.ok(lastOf(w, 'ownerRefresh').detail.length > 0, '5.00.16: текст ошибки - для журнала');
   w.reply = () => JSON.stringify({ error: { error_code: 15, error_msg: 'Access denied' } });
   w.__vkLite.owner('refresh', '2', '/club42');
   await wait(35);

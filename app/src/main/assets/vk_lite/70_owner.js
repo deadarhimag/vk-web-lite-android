@@ -322,7 +322,8 @@
               'filter', 'extended'].forEach(function (k) {
               if (typeof params[k] === 'string' || typeof params[k] === 'number' || typeof params[k] === 'boolean') query[k] = params[k];
             });
-            if (method === 'owners.getMainTab') query.start_from = '';
+            // 5.00.16: пустой start_from не передаётся - страница его так не шлёт, а VK на него отвечал ошибкой
+            // (отчёт 22.11: каждое обновление сообщества - ответ около 1 КБ и "сетевое обновление не выполнено")
             s.wallRequest = { method: method, query: query };
           }
           return true;
@@ -366,8 +367,9 @@
       if (!/^\d{1,16}$/.test(operation) || pathKey() !== key) return false;
       var s = current();
       cancelRefresh();
-      function result(reason, payload) {
-        postToApp({ type: 'ownerRefresh', operation: operation, key: key, reason: reason, payload: payload || null });
+      function result(reason, payload, detail) {
+        postToApp({ type: 'ownerRefresh', operation: operation, key: key, reason: reason, payload: payload || null,
+          detail: String(detail || '').slice(0, 160) });
       }
       if (!s.wallRequest || !VkApi.ready()) { result('unavailable'); return true; }
       var request = s.wallRequest;
@@ -377,9 +379,14 @@
         if (refreshJob !== job) return;
         cancelRefresh();
         if (s !== current() || job.generation !== window.__vkCompat.generation()) return;
-        if (error) { result(/^ошибка API 15(?::|$)/.test(error) ? 'denied' : 'request'); return; }
+        // Текст ошибки - в журнал: по нему видно, что ответил VK
+        if (error) { result(/^ошибка API 15(?::|$)/.test(error) ? 'denied' : 'request', null, error); return; }
         if (response && response.response && typeof response.response === 'object') response = response.response;
-        if (!onWall(s, request.query, response)) { result('invalid'); return; }
+        if (!onWall(s, request.query, response)) {
+          var shape = response && typeof response === 'object' ? Object.keys(response).slice(0, 8).join(',') : typeof response;
+          result('invalid', null, 'поля ответа: ' + shape);
+          return;
+        }
         result('', buildPayload());
       }
       job.timer = setTimeout(function () { finish('timeout'); }, 10000);
