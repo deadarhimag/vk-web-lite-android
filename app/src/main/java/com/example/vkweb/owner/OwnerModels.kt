@@ -29,7 +29,7 @@ data class PostPhoto(
                 height = o.optInt("height").coerceIn(0, 20_000),
                 full = com.example.vkweb.config.SafeUrls.https(o.optString("full")),
                 open = safePath(o.optString("open")),
-                page = safePath(o.optString("page")).takeIf { it.startsWith("/photo") }.orEmpty(),
+                page = photoPage(safePath(o.optString("page"))),
                 key = o.optString("key").takeIf { KEY.matches(it) }.orEmpty(),
             )
         }
@@ -336,6 +336,15 @@ data class PostAudio(val wanted: String, val items: List<Item>, val reason: Stri
 }
 
 /** Адрес на сайте из данных страницы: только путь вида /wall1_2 (без схемы и хоста). */
+/**
+ * Страница фото записи. У фото сообщества (номер владельца со знаком минус) ключ доступа отбрасывается: такое фото открыто
+ * всем, а со старым ключом из сохранённой страницы VK отвечал «Ошибкой доступа» (отчёт 22.11, 5.00.16). У фото людей ключ остаётся.
+ */
+internal fun photoPage(path: String): String {
+    if (!path.startsWith("/photo")) return ""
+    return if (path.startsWith("/photo-")) path.substringBefore('?') else path
+}
+
 internal fun safePath(raw: String): String =
     raw.takeIf { it.startsWith("/") && !it.startsWith("//") && it.length <= 300 && it.none { c -> c.isWhitespace() } }.orEmpty()
 
