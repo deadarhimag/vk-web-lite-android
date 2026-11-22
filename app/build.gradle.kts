@@ -32,8 +32,8 @@ android {
         applicationId = "io.github.deadarhimag.vkweblite"
         minSdk = 26
         targetSdk = 35
-        versionCode = 228
-        versionName = "5.00.20"
+        versionCode = 229
+        versionName = "5.00.21"
     }
 
     signingConfigs {

@@ -20,6 +20,9 @@ interface OwnerActions {
     /** Трек [track] из записи [post]: играть (очередь — треки записи). */
     fun playAudio(post: WallPost, track: PostExtra) = Unit
 
+    /** Есть ли сеть: без неё лайк не ставится (экран записи не должен показывать его поставленным). */
+    val isOnline: Boolean get() = true
+
     /** Запись: свой экран с комментариями; нет его - страница записи на сайте. */
     fun openPost(post: WallPost) = openLink(post.url)
 

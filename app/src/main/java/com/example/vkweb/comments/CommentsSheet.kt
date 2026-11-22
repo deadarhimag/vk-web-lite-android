@@ -335,6 +335,7 @@ class CommentsSheet private constructor(
             override fun like(post: WallPost) = Unit
             override fun openAvatar(url: String) = Unit
             override fun write(header: OwnerHeader) = Unit
+            override val isOnline: Boolean get() = false
         }
 
         override fun openLink(target: String) { dialog.dismiss(); base.openLink(target) }
@@ -343,9 +344,11 @@ class CommentsSheet private constructor(
         override fun playAudio(post: WallPost, track: PostExtra) = base.playAudio(post, track)
         override fun openAvatar(url: String) = base.openAvatar(url)
         override fun write(header: OwnerHeader) { dialog.dismiss(); base.write(header) }
+        override val isOnline: Boolean get() = base.isOnline
         override fun like(post: WallPost) {
             val shown = this@CommentsSheet.post ?: return
             base.like(shown)
+            if (!base.isOnline) return
             this@CommentsSheet.post = shown.copy(liked = !shown.liked, likes = (shown.likes + if (shown.liked) -1 else 1).coerceAtLeast(0))
             adapter.notifyItemChanged(0)
         }

@@ -335,7 +335,6 @@ data class PostAudio(val wanted: String, val items: List<Item>, val reason: Stri
     }
 }
 
-/** Адрес на сайте из данных страницы: только путь вида /wall1_2 (без схемы и хоста). */
 /**
  * Страница фото записи. У фото сообщества (номер владельца со знаком минус) ключ доступа отбрасывается: такое фото открыто
  * всем, а со старым ключом из сохранённой страницы VK отвечал «Ошибкой доступа» (отчёт 22.11, 5.00.16). У фото людей ключ остаётся.
@@ -345,6 +344,7 @@ internal fun photoPage(path: String): String {
     return if (path.startsWith("/photo-")) path.substringBefore('?') else path
 }
 
+/** Адрес на сайте из данных страницы: только путь вида /wall1_2 (без схемы и хоста). */
 internal fun safePath(raw: String): String =
     raw.takeIf { it.startsWith("/") && !it.startsWith("//") && it.length <= 300 && it.none { c -> c.isWhitespace() } }.orEmpty()
 

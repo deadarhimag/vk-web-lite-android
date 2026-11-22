@@ -289,6 +289,8 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         host.links.openPhotos(stills.map { it.full.ifEmpty { it.url } }, stills.indexOf(photo).coerceAtLeast(0), stills.map { it.page })
     }
 
+    override val isOnline: Boolean get() = host.isOnline
+
     /** Запись - своим экраном с комментариями (шторка); нет окна или номера записи - страница сайта, как раньше. */
     override fun openPost(post: WallPost) {
         val fallback = { if (post.url.isNotEmpty()) host.links.openLink(post.url) }
