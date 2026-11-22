@@ -1061,7 +1061,7 @@ test('страница сообщества: лайк записи — от им
   await wait(300);
   const before = w.sent.map((m) => JSON.parse(m)).filter((m) => m.type === 'owner').pop();
   assert.deepStrictEqual([before.posts[0].likes, before.posts[0].liked], [10, false]);
-  assert.strictEqual(before.posts[0].photos[0].page, '/photo-42_5?access_key=ab12', 'страница фото с ключом');
+  assert.strictEqual(before.posts[0].photos[0].page, '/photo-42_5', 'страница фото сообщества - без ключа (отчёт 22.11, ошибка доступа)');
   assert.strictEqual(w.__vkLite.owner('like', '-42_7', '1'), true);
   await wait(400);
   const call = w.requests.find((r) => r.url.includes('/method/likes.add'));

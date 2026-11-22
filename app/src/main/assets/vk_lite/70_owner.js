@@ -70,8 +70,10 @@
       if (!sizes) return null;
       var full = (p.orig_photo && p.orig_photo.url) || sizes.largest.url;
       // Страница самого фото — с лайками и комментариями (режим «фото страницей»).
-      var page = num(p.owner_id) && num(p.id) ? '/photo' + p.owner_id + '_' + p.id +
-        (typeof p.access_key === 'string' && /^[0-9a-z]+$/i.test(p.access_key) ? '?access_key=' + p.access_key : '') : '';
+      // Фото сообщества (отрицательный владелец) открыто всем: ключ из записи там не нужен, а с ним страница VK отвечала
+      // «Ошибка доступа» (отчёт 22.11). Ключ остаётся для фото людей — они могут быть закрытыми.
+      var keyed = num(p.owner_id) > 0 && typeof p.access_key === 'string' && /^[0-9a-z]+$/i.test(p.access_key);
+      var page = num(p.owner_id) && num(p.id) ? '/photo' + p.owner_id + '_' + p.id + (keyed ? '?access_key=' + p.access_key : '') : '';
       return { url: sizes.pick.url, width: num(sizes.pick.width), height: num(sizes.pick.height), full: full, open: '', page: page };
     }
 
