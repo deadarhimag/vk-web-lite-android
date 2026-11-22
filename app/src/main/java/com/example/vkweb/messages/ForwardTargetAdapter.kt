@@ -72,7 +72,7 @@ class ForwardTargetAdapter(
         val ctx = view.context
         val circle = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(MaterialColors.getColor(view, com.google.android.material.R.attr.colorPrimary))
+            setColor(MaterialColors.getColor(view, androidx.appcompat.R.attr.colorPrimary))
         }
         val icon = ContextCompat.getDrawable(ctx, R.drawable.ic_section_fave)?.mutate()?.apply {
             setTint(MaterialColors.getColor(view, com.google.android.material.R.attr.colorOnPrimary))
