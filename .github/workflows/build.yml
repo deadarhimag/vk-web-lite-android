@@ -4,6 +4,11 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Опубликовать подписанные APK как GitHub Release (тег v<версия>)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -26,6 +31,9 @@ jobs:
   build:
     needs: js-tests
     runs-on: ubuntu-latest
+    # Запись нужна только для публикации релиза при ручном запуске.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
@@ -131,6 +139,21 @@ jobs:
           name: vkweb-release-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
+
+      # Релиз: тег v<версия>, описание - раздел версии из CHANGELOG.md, файлы - проверенные подписанные APK.
+      - name: Publish GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version_name=$(sed -nE 's/^ *versionName = "([^"]+)".*/\1/p' app/build.gradle.kts)
+          awk -v v="## $version_name" '$0 == v {on=1; next} /^## / {on=0} on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if [[ ! -s "$RUNNER_TEMP/notes.md" ]]; then
+            printf 'VK Web Lite %s\n' "$version_name" > "$RUNNER_TEMP/notes.md"
+          fi
+          gh release create "v$version_name" app/build/outputs/apk/release/*.apk \
+            --title "VK Web Lite $version_name" --notes-file "$RUNNER_TEMP/notes.md" --target "$GITHUB_SHA"
 
       - name: Build debug APK
         if: github.event_name == 'push'
