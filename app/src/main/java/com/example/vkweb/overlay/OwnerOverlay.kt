@@ -289,6 +289,19 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         host.links.openPhotos(stills.map { it.full.ifEmpty { it.url } }, stills.indexOf(photo).coerceAtLeast(0), stills.map { it.page })
     }
 
+    /** Запись - своим экраном с комментариями (шторка); нет окна или номера записи - страница сайта, как раньше. */
+    override fun openPost(post: WallPost) {
+        val fallback = { if (post.url.isNotEmpty()) host.links.openLink(post.url) }
+        val activity = context as? android.app.Activity
+        if (activity == null) {
+            fallback()
+            return
+        }
+        com.example.vkweb.comments.CommentsSheet.openPost(
+            activity, com.example.vkweb.comments.CommentTarget.ofPost(post.key), post, this, fallback,
+        )
+    }
+
     override fun share(post: WallPost) {
         val text = PostShare.textOf(post)
         val photos = post.photos.filter { it.open.isEmpty() }.map { it.full.ifEmpty { it.url } }

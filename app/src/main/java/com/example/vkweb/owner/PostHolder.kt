@@ -23,6 +23,8 @@ class PostHolder(
     expanded: ExpandedTexts,
     /** Чья страница: подпись автора-владельца не ведёт на ту же страницу. */
     private val ownerId: () -> Long,
+    /** Запись открыта на своём экране записи: нажатие на неё и на комментарии ничего не открывает. */
+    private val standalone: Boolean = false,
 ) : RecyclerView.ViewHolder(view) {
 
     private val avatar: ImageView = view.findViewById(R.id.post_avatar)
@@ -48,9 +50,11 @@ class PostHolder(
     init {
         Views.clipCircle(avatar)
         Views.clipCircle(repostAvatar)
-        view.setOnClickListener { current?.let(::openPost) }
-        comments.setOnClickListener { current?.let(::openPost) }
-        repost.setOnClickListener { current?.repost?.let(::openPost) }
+        if (!standalone) {
+            view.setOnClickListener { current?.let(actions::openPost) }
+            comments.setOnClickListener { current?.let(actions::openPost) }
+        }
+        repost.setOnClickListener { current?.repost?.let(::openRepost) }
         // Лайк ставится прямо здесь (от имени страницы VK); остальные счётчики открывают запись.
         likes.setOnClickListener { current?.let(actions::like) }
         // Долгое нажатие на запись — «Поделиться» (в другой мессенджер: ссылка, текст, фото).
@@ -111,7 +115,8 @@ class PostHolder(
         }
     }
 
-    private fun openPost(post: WallPost) {
+    /** Запись, которой поделились, открывается страницей сайта. */
+    private fun openRepost(post: WallPost) {
         if (post.url.isNotEmpty()) actions.openLink(post.url)
     }
 

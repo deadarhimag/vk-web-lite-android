@@ -17,6 +17,12 @@ import com.example.vkweb.R
 import com.example.vkweb.diag.AppLog
 import com.example.vkweb.diag.LogTag
 import com.example.vkweb.offline.ImageCache
+import com.example.vkweb.owner.OwnerActions
+import com.example.vkweb.owner.OwnerHeader
+import com.example.vkweb.owner.PostExtra
+import com.example.vkweb.owner.PostHolder
+import com.example.vkweb.owner.PostPhoto
+import com.example.vkweb.owner.WallPost
 import com.example.vkweb.text.RuPlural
 import com.example.vkweb.ui.CoverImage
 import com.example.vkweb.ui.Notice
@@ -37,12 +43,18 @@ class CommentsSheet private constructor(
     private val videoId: String,
     private val onOpenPage: () -> Unit,
     private val onShownChanged: (Boolean) -> Unit,
+    /** Запись стены, на своём экране которой открыты комментарии (4.14, 5.00.19): она показывается над списком. */
+    private var post: WallPost? = null,
+    private val postActions: OwnerActions? = null,
 ) : CommentsHub.Listener {
 
     private val handler = Handler(Looper.getMainLooper())
     private val tree = CommentRows()
     private var rows: List<CommentRows.Row> = emptyList()
     private val adapter = Adapter()
+    private val expandedTexts = com.example.vkweb.owner.ExpandedTexts()
+    /** Строка записи над комментариями, если открыт экран записи. */
+    private val headerCount: Int get() = if (post != null) 1 else 0
     private lateinit var dialog: BottomSheetDialog
     private lateinit var title: TextView
     private lateinit var status: View
@@ -88,16 +100,18 @@ class CommentsSheet private constructor(
         sendButton = view.findViewById(R.id.comments_send)
         replyBar = view.findViewById(R.id.comments_reply_bar)
         replyTo = view.findViewById(R.id.comments_reply_to)
-        // Высота списка — около двух третей экрана: шторка не скачет, пока приходят комментарии.
+        // Высота списка — около двух третей экрана: шторка не скачет, пока приходят комментарии. Экран записи выше.
         view.findViewById<View>(R.id.comments_body).layoutParams.height =
-            (activity.resources.displayMetrics.heightPixels * BODY_SHARE).toInt()
+            (activity.resources.displayMetrics.heightPixels * (if (post != null) POST_BODY_SHARE else BODY_SHARE)).toInt()
+        // Над списком запись: строка «загрузка, пусто» внизу, чтобы не закрывать её.
+        if (post != null) (status.layoutParams as android.widget.FrameLayout.LayoutParams).gravity = android.view.Gravity.BOTTOM
         val list = view.findViewById<RecyclerView>(R.id.comments_list)
         val layout = LinearLayoutManager(activity)
         list.layoutManager = layout
         list.adapter = adapter
         list.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-                if (dy > 0 && layout.findLastVisibleItemPosition() >= rows.size - LOAD_AHEAD) loadMore()
+                if (dy > 0 && layout.findLastVisibleItemPosition() >= rows.size + headerCount - LOAD_AHEAD) loadMore()
             }
         })
         view.findViewById<View>(R.id.comments_open_page).setOnClickListener {
@@ -261,18 +275,57 @@ class CommentsSheet private constructor(
     }
 
     private inner class Adapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-        override fun getItemCount() = rows.size
-        override fun getItemViewType(position: Int) = if (rows[position] is CommentRows.Row.More) TYPE_MORE else TYPE_COMMENT
+        override fun getItemCount() = rows.size + headerCount
+        override fun getItemViewType(position: Int) = when {
+            position < headerCount -> TYPE_POST
+            rows[position - headerCount] is CommentRows.Row.More -> TYPE_MORE
+            else -> TYPE_COMMENT
+        }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val inflater = LayoutInflater.from(parent.context)
-            return if (viewType == TYPE_MORE) MoreHolder(inflater.inflate(R.layout.item_comment_more, parent, false))
-            else Holder(inflater.inflate(R.layout.item_comment, parent, false))
+            return when (viewType) {
+                TYPE_POST -> PostHolder(inflater.inflate(R.layout.item_post, parent, false), SheetActions(), expandedTexts, { 0L }, standalone = true)
+                TYPE_MORE -> MoreHolder(inflater.inflate(R.layout.item_comment_more, parent, false))
+                else -> Holder(inflater.inflate(R.layout.item_comment, parent, false))
+            }
         }
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            when (val row = rows[position]) {
+            if (position < headerCount) {
+                post?.let { (holder as PostHolder).bind(it) }
+                return
+            }
+            when (val row = rows[position - headerCount]) {
                 is CommentRows.Row.Item -> (holder as Holder).bind(row)
                 is CommentRows.Row.More -> (holder as MoreHolder).bind(row)
             }
+        }
+    }
+
+    /**
+     * Нажатия на записи этого экрана: переходы закрывают шторку (иначе страница откроется под ней), лайк сразу виден
+     * здесь же - сервер подтвердит или отменит его на самом экране страницы.
+     */
+    private inner class SheetActions : OwnerActions {
+        private val base: OwnerActions get() = postActions ?: object : OwnerActions {
+            override fun openLink(target: String) = Unit
+            override fun openPhoto(photo: PostPhoto, gallery: List<PostPhoto>) = Unit
+            override fun share(post: WallPost) = Unit
+            override fun like(post: WallPost) = Unit
+            override fun openAvatar(url: String) = Unit
+            override fun write(header: OwnerHeader) = Unit
+        }
+
+        override fun openLink(target: String) { dialog.dismiss(); base.openLink(target) }
+        override fun openPhoto(photo: PostPhoto, gallery: List<PostPhoto>) { dialog.dismiss(); base.openPhoto(photo, gallery) }
+        override fun share(post: WallPost) = base.share(post)
+        override fun playAudio(post: WallPost, track: PostExtra) = base.playAudio(post, track)
+        override fun openAvatar(url: String) = base.openAvatar(url)
+        override fun write(header: OwnerHeader) { dialog.dismiss(); base.write(header) }
+        override fun like(post: WallPost) {
+            val shown = this@CommentsSheet.post ?: return
+            base.like(shown)
+            this@CommentsSheet.post = shown.copy(liked = !shown.liked, likes = (shown.likes + if (shown.liked) -1 else 1).coerceAtLeast(0))
+            adapter.notifyItemChanged(0)
         }
     }
 
@@ -337,6 +390,7 @@ class CommentsSheet private constructor(
 
     companion object {
         private const val BODY_SHARE = 0.6f
+        private const val POST_BODY_SHARE = 0.85f
         private const val LOAD_AHEAD = 5
         private const val ANSWER_TIMEOUT_MS = 12_000L
         private const val AVATAR_DP = 40
@@ -347,6 +401,7 @@ class CommentsSheet private constructor(
         private const val REPLY_INDENT_DP = 16 + AVATAR_DP + 12
         private const val TYPE_COMMENT = 0
         private const val TYPE_MORE = 1
+        private const val TYPE_POST = 2
 
         /**
          * Открыть комментарии к «владелец_номер» [videoId]. Нет страницы главного окна или номера — сразу [onOpenPage].
@@ -360,6 +415,20 @@ class CommentsSheet private constructor(
             }
             AppLog.i(LogTag.MEDIA, "комментарии: открыт свой список")
             CommentsSheet(activity, videoId, onOpenPage, onShownChanged).show()
+        }
+
+        /**
+         * Экран записи стены (5.00.19): запись и под ней её комментарии. [target] - «w» + номер записи
+         * ([CommentTarget.ofPost]); нет страницы главного окна - сразу [onOpenPage], как раньше.
+         */
+        fun openPost(activity: Activity, target: String?, post: WallPost, actions: OwnerActions, onOpenPage: () -> Unit) {
+            if (target == null || !CommentsHub.isAvailable) {
+                AppLog.i(LogTag.MEDIA, "запись: своего экрана нет - открыта страница", "номер" to (target != null))
+                onOpenPage()
+                return
+            }
+            AppLog.i(LogTag.MEDIA, "запись: открыт свой экран", "комментариев" to post.comments)
+            CommentsSheet(activity, target, onOpenPage, {}, post, actions).show()
         }
     }
 }

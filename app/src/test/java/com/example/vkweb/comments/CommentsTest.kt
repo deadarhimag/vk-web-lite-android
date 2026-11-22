@@ -17,6 +17,8 @@ class CommentsTest {
         assertEquals("-5_1", CommentTarget.fromPagePath("/video-5_1_abcdef"))
         assertNull(CommentTarget.fromPagePath("/videos-5"))
         assertNull(CommentTarget.fromPagePath("/audio"))
+        assertEquals("w-5_9", CommentTarget.ofPost("-5_9"))
+        assertNull(CommentTarget.ofPost("мусор"))
         assertNull(CommentTarget.fromPagePath(""))
         assertNull(CommentTarget.fromPagePath(null))
         assertNull("слишком длинный номер", CommentTarget.fromPagePath("/video-1234567890123_1"))

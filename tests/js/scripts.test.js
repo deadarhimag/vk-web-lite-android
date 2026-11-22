@@ -3341,3 +3341,39 @@ test('https-адрес — одна проверка для всех скрип�
   // Годится как фильтр массива: лишние аргументы filter не мешают.
   assert.deepStrictEqual(['http://x', 'https://y', 7].filter(w.__vkNetTap.https), ['https://y']);
 });
+
+test('комментарии: запись стены (w-номер) — wall.getComments и wall.createComment, ветка и ответ', async () => {
+  const top = { response: { count: 1, items: [{ id: 11, from_id: 5, date: 1700000000, text: 'Круто', likes: { count: 1 }, thread: { count: 2, items: [] } }],
+    profiles: [{ id: 5, first_name: 'Иван', last_name: 'Петров', photo_100: 'https://sun9-1.userapi.com/a.jpg' }], groups: [] } };
+  const thread = { response: { count: 1, items: [{ id: 21, from_id: 5, date: 1700000100, text: 'Ответ', reply_to_comment: 11, parents_stack: [11] }],
+    profiles: [{ id: 5, first_name: 'Иван', last_name: 'Петров', photo_100: '' }], groups: [] } };
+  const w = apiPage('https://m.vk.ru/club42', '', (u, body) => {
+    if (u.includes('wall.getComments')) return JSON.stringify(/comment_id=11/.test(body) ? thread : top);
+    if (u.includes('wall.createComment')) return '{"response":{"comment_id":30}}';
+    return '';
+  });
+  await authorize(w);
+  assert.strictEqual(w.__vkLite.comments('get', 'w-42_7', '0', '0'), true);
+  await wait(150);
+  const call = w.requests.find((r) => r.url.includes('wall.getComments'));
+  const p = new URLSearchParams(call.body);
+  assert.deepStrictEqual([p.get('owner_id'), p.get('post_id'), p.has('video_id'), p.get('sort')], ['-42', '7', false, 'desc']);
+  const first = lastOf(w, 'comments');
+  assert.strictEqual(first.id, 'w-42_7', 'ключ возвращается с буквой: по нему приложение узнаёт запись');
+  assert.deepStrictEqual([first.ok, first.total, first.items.map((c) => c.text)], [true, 1, ['Круто']]);
+
+  w.__vkLite.comments('get', 'w-42_7', '0', '11');
+  await wait(150);
+  const branch = lastOf(w, 'comments');
+  assert.deepStrictEqual([branch.parent, branch.items.map((c) => c.text)], [11, ['Ответ']]);
+
+  assert.strictEqual(w.__vkLite.comments('send', 'w-42_7', 'Спасибо', '11'), true);
+  await wait(150);
+  const sent = w.requests.find((r) => r.url.includes('wall.createComment'));
+  const q = new URLSearchParams(sent.body);
+  assert.deepStrictEqual([q.get('owner_id'), q.get('post_id'), q.get('message'), q.get('reply_to_comment')], ['-42', '7', 'Спасибо', '11']);
+  const done = lastOf(w, 'commentSent');
+  assert.deepStrictEqual([done.ok, done.id, done.replyTo], [true, 'w-42_7', 11]);
+  assert.strictEqual(w.__vkLite.comments('get', 'wx-1_2', '0'), false);
+  w.close();
+});

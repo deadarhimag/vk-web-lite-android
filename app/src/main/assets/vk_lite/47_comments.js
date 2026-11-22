@@ -13,10 +13,13 @@
     var THREAD_PAGE = 100;
     var MAX_TEXT = 4000;
 
-    /** «владелец_номер» → {owner, id}; иначе null. */
+    /**
+     * «владелец_номер» (ролик, клип) или «w» + то же (запись стены) → {owner, id, wall, key}; иначе null.
+     * Приложение шлёт ключ обратно в ответе как есть, поэтому в key остаётся и буква.
+     */
     function target(value) {
-      var m = /^(-?\d{1,12})_(\d{1,12})$/.exec(String(value || ''));
-      return m ? { owner: m[1], id: m[2], key: m[1] + '_' + m[2] } : null;
+      var m = /^(w?)(-?\d{1,12})_(\d{1,12})$/.exec(String(value || ''));
+      return m ? { owner: m[2], id: m[3], wall: m[1] === 'w', key: m[1] + m[2] + '_' + m[3] } : null;
     }
 
 
@@ -92,11 +95,16 @@
         postToApp(msg);
       };
       if (!VkApi.ready()) { reply({ reason: 'нет данных входа' }); return true; }
-      var params = parent ?
-        { owner_id: t.owner, video_id: t.id, need_likes: 1, comment_id: parent, offset: from, count: THREAD_PAGE, sort: 'asc', extended: 1, fields: 'photo_100' } :
-        { owner_id: t.owner, video_id: t.id, need_likes: 1, offset: from, count: PAGE_SIZE, sort: 'desc', extended: 1, fields: 'photo_100',
-          thread_items_count: THREAD_INLINE };
-      VkApi.call('video.getComments', params, function (error, r) {
+      // Запись стены - wall.getComments (post_id), ролик и клип - video.getComments (video_id); остальное у них общее.
+      var idParam = t.wall ? 'post_id' : 'video_id';
+      var params = { owner_id: t.owner, need_likes: 1, extended: 1, fields: 'photo_100' };
+      params[idParam] = t.id;
+      if (parent) {
+        params.comment_id = parent; params.offset = from; params.count = THREAD_PAGE; params.sort = 'asc';
+      } else {
+        params.offset = from; params.count = PAGE_SIZE; params.sort = 'desc'; params.thread_items_count = THREAD_INLINE;
+      }
+      VkApi.call(t.wall ? 'wall.getComments' : 'video.getComments', params, function (error, r) {
         if (error || !r || !Array.isArray(r.items)) {
           Diag.warn('комментарии не получены: ' + String(error || 'нет списка').slice(0, 100));
           reply({ reason: String(error || 'нет списка').slice(0, 120) });
@@ -129,9 +137,10 @@
       if (!t || !message) return false;
       var reply = function (ok, reason) { postToApp({ type: 'commentSent', id: t.key, replyTo: to, ok: ok, reason: reason || '' }); };
       if (!VkApi.ready()) { reply(false, 'нет данных входа'); return true; }
-      var params = { owner_id: t.owner, video_id: t.id, message: message };
+      var params = { owner_id: t.owner, message: message };
+      params[t.wall ? 'post_id' : 'video_id'] = t.id;
       if (to) params.reply_to_comment = to;
-      VkApi.call('video.createComment', params, function (error) {
+      VkApi.call(t.wall ? 'wall.createComment' : 'video.createComment', params, function (error) {
         if (error) {
           Diag.warn('комментарий не отправлен: ' + String(error).slice(0, 100));
           reply(false, String(error).slice(0, 120));

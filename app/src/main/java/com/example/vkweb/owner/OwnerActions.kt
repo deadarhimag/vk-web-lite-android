@@ -20,6 +20,9 @@ interface OwnerActions {
     /** Трек [track] из записи [post]: играть (очередь — треки записи). */
     fun playAudio(post: WallPost, track: PostExtra) = Unit
 
+    /** Запись: свой экран с комментариями; нет его - страница записи на сайте. */
+    fun openPost(post: WallPost) = openLink(post.url)
+
     /** Фото владельца страницы на весь экран. */
     fun openAvatar(url: String)
 
