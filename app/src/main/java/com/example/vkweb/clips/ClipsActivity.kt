@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -17,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.vkweb.video.VkExoPlayer
@@ -24,6 +26,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.example.vkweb.MainActivity
 import com.example.vkweb.R
+import com.example.vkweb.config.SafeUrls
 import com.example.vkweb.diag.AppLog
 import com.example.vkweb.diag.LogTag
 import com.example.vkweb.messages.VoicePlayer
@@ -63,6 +66,9 @@ class ClipsActivity : AppCompatActivity() {
     private var dragging = false
     private var userPaused = false
     private var resumeAt = 0L
+    private var sourceHost = ""
+    private var startedAt = 0L
+    private var firstFramePending = false
 
     private fun durationMs(): Long = VkExoPlayer.durationMs(exo.duration)
 
@@ -75,10 +81,19 @@ class ClipsActivity : AppCompatActivity() {
         // Первый кадр на экране — обложка больше не нужна.
         override fun onRenderedFirstFrame() {
             cover.isVisible = false
+            if (firstFramePending) {
+                firstFramePending = false
+                AppLog.d(LogTag.MEDIA, "клип: первый кадр в своём проигрывателе",
+                    "номер в ленте" to index + 1, "сервер" to sourceHost, "мс" to SystemClock.elapsedRealtime() - startedAt)
+            }
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            AppLog.w(LogTag.PAGE, "клип не воспроизводится в своём проигрывателе", "код" to error.errorCodeName)
+            val http = generateSequence(error.cause) { it.cause }
+                .filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()
+            AppLog.w(LogTag.MEDIA, "клип не воспроизводится в своём проигрывателе",
+                "номер в ленте" to index + 1, "сервер" to sourceHost, "код" to error.errorCodeName,
+                "HTTP" to http?.responseCode, "первый кадр ожидался" to firstFramePending)
             Toast.makeText(this@ClipsActivity, R.string.clips_failed, Toast.LENGTH_SHORT).show()
             handler.post { show(index + 1) }
         }
@@ -258,6 +273,11 @@ class ClipsActivity : AppCompatActivity() {
         seek.progress = 0
         time.text = ""
         // Тот же проигрыватель — новая запись: без освобождения и пересоздания (раньше — подвисание на каждом ролике).
+        sourceHost = SafeUrls.hostOf(clip.source).orEmpty()
+        startedAt = SystemClock.elapsedRealtime()
+        firstFramePending = true
+        AppLog.d(LogTag.MEDIA, "клип: источник передан своему проигрывателю",
+            "номер в ленте" to index + 1, "сервер" to sourceHost, "HLS" to VkExoPlayer.isHls(clip.source))
         exo.setMediaItem(VkExoPlayer.item(clip.source), resumeAt)
         resumeAt = 0L
         exo.prepare()
