@@ -24,9 +24,8 @@ jobs:
         run: npm ci --no-audit --no-fund && npm test
 
   build:
+    needs: js-tests
     runs-on: ubuntu-latest
-    env:
-      HAS_RELEASE_KEY: ${{ github.event_name == 'workflow_dispatch' && secrets.VKWEB_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -49,9 +48,9 @@ jobs:
       - name: Unit tests
         run: ./gradlew testDebugUnitTest --no-daemon
 
-      # Android Lint (4.1): мелкие кнопки, устаревшие API, доступность. Сборку не останавливает — отчёт в артефакте.
+      # При ручной сборке ошибка Lint блокирует выпуск артефакта APK.
       - name: Android Lint
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'push' }}
         run: ./gradlew lintDebug --no-daemon
 
       - uses: actions/upload-artifact@v7
@@ -61,38 +60,71 @@ jobs:
           path: app/build/reports/lint-results-debug.*
           if-no-files-found: ignore
 
-      # Ключ из секрета — во временный файл раннера (не в рабочую папку, не в журнал).
-      - name: Release key
-        if: env.HAS_RELEASE_KEY == 'true'
+      - name: Build signed release APKs
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
         env:
-          KEYSTORE_BASE64: ${{ secrets.VKWEB_KEYSTORE_BASE64 }}
-        run: printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/vkweb.jks"
-
-      - name: Build release APK
-        if: env.HAS_RELEASE_KEY == 'true'
-        env:
-          VKWEB_STORE_FILE: ${{ runner.temp }}/vkweb.jks
+          VKWEB_KEYSTORE_BASE64: ${{ secrets.VKWEB_KEYSTORE_BASE64 }}
           VKWEB_STORE_PASSWORD: ${{ secrets.VKWEB_STORE_PASSWORD }}
           VKWEB_KEY_ALIAS: ${{ secrets.VKWEB_KEY_ALIAS }}
           VKWEB_KEY_PASSWORD: ${{ secrets.VKWEB_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          for required in VKWEB_KEYSTORE_BASE64 VKWEB_STORE_PASSWORD VKWEB_KEY_ALIAS VKWEB_KEY_PASSWORD; do
+            if [[ -z "${!required}" ]]; then
+              printf '::error::Missing Actions secret %s\n' "$required"
+              exit 1
+            fi
+          done
 
-      - name: Remove release key
-        if: always() && env.HAS_RELEASE_KEY == 'true'
-        run: rm -f "$RUNNER_TEMP/vkweb.jks"
+          if [[ -e keystore.properties ]]; then
+            echo '::error::Unexpected local signing configuration'
+            exit 1
+          fi
+
+          umask 077
+          store_file=$(mktemp "$RUNNER_TEMP/vkweb.XXXXXXXX.p12")
+          trap 'rm -f -- "$store_file"' EXIT
+          printf '%s' "$VKWEB_KEYSTORE_BASE64" | base64 --decode > "$store_file"
+          unset VKWEB_KEYSTORE_BASE64
+          VKWEB_STORE_FILE="$store_file" ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Verify release APKs
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          build_tools="${ANDROID_HOME:?}/build-tools/36.0.0"
+          expected_certificate=915f50c1faf74d20eb0b81972a9adbb0d01416637c97c9fe197b0bb80e0d128f
+          expected_package="package: name='io.github.deadarhimag.vkweblite' versionCode='222' versionName='5.00.14'"
+          shopt -s nullglob
+          apks=(app/build/outputs/apk/release/*.apk)
+          if (( ${#apks[@]} != 3 )); then
+            echo '::error::Expected three release APKs'
+            exit 1
+          fi
+
+          for apk in "${apks[@]}"; do
+            signer_info=$("$build_tools/apksigner" verify --print-certs "$apk")
+            mapfile -t digests < <(awk '/^Signer #[0-9]+ certificate SHA-256 digest:/ {print $NF}' <<< "$signer_info")
+            if (( ${#digests[@]} != 1 )) || [[ "${digests[0],,}" != "$expected_certificate" ]]; then
+              printf '::error::Unexpected signing certificate for %s\n' "$apk"
+              exit 1
+            fi
+            package_info=$("$build_tools/aapt" dump badging "$apk")
+            IFS= read -r package_line <<< "$package_info"
+            if [[ "$package_line" != "$expected_package "* ]]; then
+              printf '::error::Unexpected package or version for %s\n' "$apk"
+              exit 1
+            fi
+            printf 'Verified %s with certificate SHA-256 %s\n' "$apk" "$expected_certificate"
+          done
 
       - uses: actions/upload-artifact@v7
-        if: env.HAS_RELEASE_KEY == 'true'
+        if: github.event_name == 'workflow_dispatch'
         with:
           name: vkweb-release-apk
           path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
 
       - name: Build debug APK
-        if: env.HAS_RELEASE_KEY != 'true'
+        if: github.event_name == 'push'
         run: ./gradlew assembleDebug --no-daemon
-
-      - uses: actions/upload-artifact@v7
-        if: github.event_name == 'workflow_dispatch' && env.HAS_RELEASE_KEY != 'true'
-        with:
-          name: vkweb-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
