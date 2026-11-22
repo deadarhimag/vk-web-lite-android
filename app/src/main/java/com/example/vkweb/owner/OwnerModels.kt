@@ -29,7 +29,7 @@ data class PostPhoto(
                 height = o.optInt("height").coerceIn(0, 20_000),
                 full = com.example.vkweb.config.SafeUrls.https(o.optString("full")),
                 open = safePath(o.optString("open")),
-                page = safePath(o.optString("page")).takeIf { it.startsWith("/photo") }.orEmpty(),
+                page = photoPage(safePath(o.optString("page"))),
                 key = o.optString("key").takeIf { KEY.matches(it) }.orEmpty(),
             )
         }
@@ -218,6 +218,8 @@ data class OwnerPayload(
     val posts: List<WallPost>,
     val hasMore: Boolean,
     val wallSeen: Boolean,
+    val snapshot: Boolean = false,
+    val needsWallHead: Boolean = false,
 ) {
     /**
      * Картинки страницы для заблаговременной загрузки: фото владельца, обложка, а у первых записей — авторы и
@@ -264,6 +266,8 @@ data class OwnerPayload(
                 }
             }
             return OwnerPayload(
+                snapshot = json.optBoolean("snapshot"),
+                needsWallHead = ownerId < 0 && json.optBoolean("wallSeen") && json.optBoolean("needsWallHead"),
                 key = key,
                 ownerId = ownerId,
                 header = json.optJSONObject("header")?.let(OwnerHeader::fromJson),
@@ -271,6 +275,28 @@ data class OwnerPayload(
                 hasMore = json.optBoolean("hasMore"),
                 wallSeen = json.optBoolean("wallSeen"),
             )
+        }
+    }
+}
+
+/** Итог сетевого обновления стены: [reason] пусто - успех; [detail] - что ответил VK, для журнала (5.00.16). */
+internal data class OwnerRefreshResult(
+    val operation: String,
+    val key: String,
+    val reason: String,
+    val payload: OwnerPayload?,
+    val detail: String = "",
+) {
+    companion object {
+        const val TYPE = "ownerRefresh"
+
+        fun fromJson(json: JSONObject): OwnerRefreshResult? {
+            val operation = json.optString("operation")
+            val key = safePath(json.optString("key"))
+            if (!operation.matches(Regex("[0-9]{1,16}")) || key.isEmpty()) return null
+            val payload = json.optJSONObject("payload")?.let(OwnerPayload::fromJson)
+                ?.takeIf { it.wallSeen && !it.snapshot && !it.needsWallHead && OwnerPath.sameKey(key, it.key) }
+            return OwnerRefreshResult(operation, key, json.optString("reason").take(40), payload, json.optString("detail").take(160))
         }
     }
 }
@@ -307,6 +333,15 @@ data class PostAudio(val wanted: String, val items: List<Item>, val reason: Stri
             return PostAudio(o.optString("wanted").take(40), items, o.optString("reason").take(200))
         }
     }
+}
+
+/**
+ * Страница фото записи. У фото сообщества (номер владельца со знаком минус) ключ доступа отбрасывается: такое фото открыто
+ * всем, а со старым ключом из сохранённой страницы VK отвечал «Ошибкой доступа» (отчёт 22.11, 5.00.16). У фото людей ключ остаётся.
+ */
+internal fun photoPage(path: String): String {
+    if (!path.startsWith("/photo")) return ""
+    return if (path.startsWith("/photo-")) path.substringBefore('?') else path
 }
 
 /** Адрес на сайте из данных страницы: только путь вида /wall1_2 (без схемы и хоста). */

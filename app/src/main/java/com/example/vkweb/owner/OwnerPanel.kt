@@ -114,7 +114,12 @@ class OwnerPanel(
         val before = old?.posts.orEmpty()
         val known = before.associateBy { it.key }
         // Те же картинки с другой подписью в адресе не должны «менять» запись при каждом обновлении (см. PostMerge).
-        val merged = ListMerge.refresh(before, fresh.posts.map { PostMerge.stabilize(known[it.key], it) }, complete) { it.key }
+        val incoming = fresh.posts.map { PostMerge.stabilize(known[it.key], it) }
+        val merged = if (fresh.needsWallHead) {
+            ListMerge.stable(before, incoming) { it.key }
+        } else {
+            ListMerge.refresh(before, incoming, complete) { it.key }
+        }
         FlowLog.merged("страница", "записи", before, merged) { it.key }
         PostMerge.describeChanges(before, merged).takeIf { it.isNotEmpty() }
             ?.let { AppLog.d(LogTag.SCREEN, "страница: изменились поля", "что" to it) }

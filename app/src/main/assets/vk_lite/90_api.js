@@ -32,12 +32,55 @@
     scheduleReport();
   }
 
+  // Номер фото живёт только в памяти документа и позволяет сравнить два маршрута в одном сеансе.
+  var PhotoRoute = (function () {
+    var photos = [];
+    var emitted = 0;
+    var documentNumber = Math.floor(Math.random() * 1000000);
+    function describe(event, raw, status) {
+      if (emitted >= 40) return;
+      try {
+        var u = new URL(raw, location.href);
+        if (!NetTap.onHost(u.href, 'vk')) return;
+        var direct = /^\/photo(-?\d+_\d+)\/?$/.exec(u.pathname);
+        var z = /^photo(-?\d+_\d+)(?:\/|$)/.exec(u.searchParams.get('z') || '');
+        var fragment = /(?:^#|[?&#]z=)photo(-?\d+_\d+)(?:[/?&#]|$)/.exec(u.hash);
+        var id = direct || z || fragment;
+        if (!id) return;
+        var index = photos.indexOf(id[1]);
+        if (index < 0) { index = photos.length; photos.push(id[1]); }
+        var paramCount = 0;
+        u.searchParams.forEach(function () { paramCount++; });
+        emitted++;
+        var message = 'маршрут фото: ' + event + ', документ=' + documentNumber + ', цель=' + (index + 1) + ', вид=' +
+          (direct ? 'photo' : (z ? 'z' : 'fragment')) + ', хост=' + u.hostname +
+          ', параметры=' + paramCount + ', ключ=' + u.searchParams.has('access_key') +
+          ', список=' + (u.searchParams.has('list') || !!(z && /\/.+/.test(u.searchParams.get('z')))) +
+          ', кодирование=' + /%[0-9a-f]{2}/i.test(u.search + u.hash) + ', фрагмент=' + !!u.hash +
+          (Number.isInteger(status) ? ', HTTP=' + status : '');
+        postToApp({ type: 'log', level: 'debug', message: message, page: '' });
+      } catch (e) { /* диагностика не влияет на переход */ }
+    }
+    document.addEventListener('click', function (event) {
+      var a = event.target && event.target.closest && event.target.closest('a[href]');
+      if (a && event.isTrusted) describe('нажатие веб-ссылки', a.getAttribute('href'));
+    }, true);
+    onRouteChange(function () { describe('адрес страницы', location.href); });
+    window.addEventListener('hashchange', function () { describe('фрагмент страницы', location.href); });
+    NetTap.onRequest(function (url, transport) { describe(transport === 'xhr' ? 'запрос XHR' : 'запрос fetch', url); });
+    NetTap.onResponse(function (url, transport, info) {
+      if (info && Number.isInteger(info.status)) describe(transport === 'xhr' ? 'ответ XHR' : 'ответ fetch', url, info.status);
+    });
+    return { command: function (url) { describe('переход приложения', url); } };
+  })();
+
   /**
    * Переход силами самой страницы (как нажатие ссылки): VK — одностраничное приложение и сам меняет содержимое,
    * не перезагружая документ, поэтому его плеер продолжает играть. Полная загрузка (webView.loadUrl) уничтожала
    * документ вместе с плеером — музыка обрывалась при каждом переходе в меню.
    */
   function navigateInPage(url) {
+    PhotoRoute.command(url);
     // Есть на странице своя ссылка туда же (сообщество в списке «Мои сообщества») — нажимается она: VK при этом
     // передаёт, откуда пришли (track_code и source в open_group). Своя ссылка без них — отчёт 3.64: open_group уходил
     // с пустым track_code, а счётчик новых записей сообщества в списке не сбрасывался.

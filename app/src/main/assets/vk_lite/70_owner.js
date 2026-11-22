@@ -26,6 +26,8 @@
 
     var state = null;
     var channel = createChannel(NOTIFY_MS, buildPayload);
+    var refreshJob = null;
+    var resending = false;
 
     function isFeedPage() { return FEED_PATH.test(location.pathname) && !/[?&]section=/.test(location.search); }
 
@@ -68,8 +70,10 @@
       if (!sizes) return null;
       var full = (p.orig_photo && p.orig_photo.url) || sizes.largest.url;
       // Страница самого фото — с лайками и комментариями (режим «фото страницей»).
-      var page = num(p.owner_id) && num(p.id) ? '/photo' + p.owner_id + '_' + p.id +
-        (typeof p.access_key === 'string' && /^[0-9a-z]+$/i.test(p.access_key) ? '?access_key=' + p.access_key : '') : '';
+      // Фото сообщества (отрицательный владелец) открыто всем: ключ из записи там не нужен, а с ним страница VK отвечала
+      // «Ошибка доступа» (отчёт 22.11). Ключ остаётся для фото людей — они могут быть закрытыми.
+      var keyed = num(p.owner_id) > 0 && typeof p.access_key === 'string' && /^[0-9a-z]+$/i.test(p.access_key);
+      var page = num(p.owner_id) && num(p.id) ? '/photo' + p.owner_id + '_' + p.id + (keyed ? '?access_key=' + p.access_key : '') : '';
       return { url: sizes.pick.url, width: num(sizes.pick.width), height: num(sizes.pick.height), full: full, open: '', page: page };
     }
 
@@ -201,7 +205,11 @@
       var ownerId = feed ? 0 : num(params && params.owner_id);
       if (s.ownerId && ownerId && ownerId !== s.ownerId) return false;
       if (!s.ownerId && ownerId) s.ownerId = ownerId;
-      if (!num(params && params.offset) && !(params && params.start_from)) { s.posts = {}; s.order = []; }
+      if (!num(params && params.offset) && !(params && params.start_from)) {
+        s.headSeen = true;
+        s.posts = {};
+        s.order = [];
+      }
       rememberAll(s.users, r.profiles);
       rememberAll(s.groups, r.groups);
       s.wallSeen = true;
@@ -306,7 +314,21 @@
         case 'utils.resolveScreenName':
           return onResolve(s, params, r);
         default:
-          return onWall(s, params, r);
+          if (!onWall(s, params, r)) return false;
+          if ((method === 'owners.getMainTab' || method === 'wall.get') && params && s.ownerId &&
+              s.ownerId !== FEED_ID && num(params.owner_id) === s.ownerId && !num(params.offset) &&
+              (!s.wallRequest || !params.start_from)) {
+            // Первую страницу обновляем тем же методом и с теми же настройками выдачи.
+            var query = { owner_id: s.ownerId, offset: 0 };
+            ['count', 'ref', 'fields', 'filters', 'forced_blocks', 'device_info', 'isFirstLanding',
+              'filter', 'extended'].forEach(function (k) {
+              if (typeof params[k] === 'string' || typeof params[k] === 'number' || typeof params[k] === 'boolean') query[k] = params[k];
+            });
+            // 5.00.16: пустой start_from не передаётся - страница его так не шлёт, а VK на него отвечал ошибкой
+            // (отчёт 22.11: каждое обновление сообщества - ответ около 1 КБ и "сетевое обновление не выполнено")
+            s.wallRequest = { method: method, query: query };
+          }
+          return true;
       }
     }
 
@@ -319,6 +341,8 @@
       return {
         type: 'owner',
         key: s.key,
+        snapshot: resending,
+        needsWallHead: s.ownerId < 0 && !!s.wallRequest && !s.headSeen,
         ownerId: s.ownerId,
         header: header,
         wallSeen: s.wallSeen,
@@ -328,6 +352,52 @@
     }
 
     ResponseTap.listenApi(isOwnerPage, METHODS, onCall, function () { channel.schedule(); retrySeen(); });
+
+    function cancelRefresh() {
+      if (!refreshJob) return;
+      var job = refreshJob;
+      refreshJob = null;
+      clearTimeout(job.timer);
+      job.controller.abort();
+    }
+
+    onRouteChange(function () {
+      if (refreshJob && refreshJob.generation !== window.__vkCompat.generation()) cancelRefresh();
+    });
+
+    function refresh(operation, key) {
+      if (!/^\d{1,16}$/.test(operation) || pathKey() !== key) return false;
+      var s = current();
+      cancelRefresh();
+      function result(reason, payload, detail) {
+        postToApp({ type: 'ownerRefresh', operation: operation, key: key, reason: reason, payload: payload || null,
+          detail: String(detail || '').slice(0, 160) });
+      }
+      if (!s.wallRequest || !VkApi.ready()) { result('unavailable'); return true; }
+      var request = s.wallRequest;
+      var job = { generation: window.__vkCompat.generation(), controller: new AbortController(), timer: 0 };
+      refreshJob = job;
+      function finish(error, response) {
+        if (refreshJob !== job) return;
+        cancelRefresh();
+        if (s !== current() || job.generation !== window.__vkCompat.generation()) return;
+        // Текст ошибки - в журнал: по нему видно, что ответил VK
+        if (error) { result(/^ошибка API 15(?::|$)/.test(error) ? 'denied' : 'request', null, error); return; }
+        if (response && response.response && typeof response.response === 'object') response = response.response;
+        if (!onWall(s, request.query, response)) {
+          var shape = response && typeof response === 'object' ? Object.keys(response).slice(0, 8).join(',') : typeof response;
+          result('invalid', null, 'поля ответа: ' + shape);
+          return;
+        }
+        result('', buildPayload());
+      }
+      job.timer = setTimeout(function () { finish('timeout'); }, 10000);
+      try {
+        VkApi.call(request.method, request.query, finish, false,
+          { signal: job.controller.signal, skipPageApi: true });
+      } catch (e) { finish('request'); }
+      return true;
+    }
 
     /**
      * Лайк записи [key] («владелец_номер»): likes.add / likes.delete от имени страницы. Итог — сообщением type = "like"
@@ -557,7 +627,12 @@
           PageList.scrollToEnd();
           return true;
         }
-        if (action === 'sync') { channel.resend(); return true; }
+        if (action === 'sync') {
+          resending = true;
+          try { channel.resend(); } finally { resending = false; }
+          return true;
+        }
+        if (action === 'refresh') return refresh(String(a || ''), String(b || ''));
         if (action === 'seen') return seen(a);
         return false;
       }

@@ -10,6 +10,7 @@ import com.example.vkweb.owner.OwnerHeader
 import com.example.vkweb.owner.OwnerPanel
 import com.example.vkweb.owner.OwnerPath
 import com.example.vkweb.owner.OwnerPayload
+import com.example.vkweb.owner.OwnerRefreshResult
 import com.example.vkweb.owner.PostPhoto
 import com.example.vkweb.owner.PostShare
 import com.example.vkweb.owner.WallPost
@@ -42,9 +43,14 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
      * берёт их из своего кэша без новых запросов — тогда экран показывает то, что уже было.
      */
     private val knownKeys = HashSet<String>()
+    private var refreshSequence = 0L
+    private var pendingRefresh: String? = null
+    private var refreshFailed = false
+    private var wallHeadRequested = false
 
     init {
         host.bridge.on(OwnerPayload.TYPE, OwnerPayload::fromJson, ::onPayload)
+        host.bridge.on(OwnerRefreshResult.TYPE, OwnerRefreshResult::fromJson, ::onRefreshResult)
         host.bridge.on(LikeResult.TYPE, LikeResult::fromJson, ::onLikeResult)
         host.bridge.on(com.example.vkweb.owner.PostAudio.TYPE, com.example.vkweb.owner.PostAudio::fromJson, ::onPostAudio)
         host.bridge.on(POST_VIDEO_TYPE, com.example.vkweb.video.VideoFiles::fromJson, ::onPostVideo)
@@ -64,11 +70,58 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
     override fun showPanel(): Boolean {
         val k = key ?: return false
         if (panel.isShown && OwnerPath.sameKey(panel.key, k)) return false
+        pendingRefresh = null
+        refreshFailed = false
         panel.show(k)
         return true
     }
 
     override fun requestFresh() = host.bridge.owner(PageBridge.ACTION_SYNC)
+
+    override fun requestUpdate() {
+        val k = key ?: return
+        if (OwnerPath.isFeed(k)) return requestFresh()
+        wallHeadRequested = true
+        val operation = (++refreshSequence).toString()
+        pendingRefresh = operation
+        refreshFailed = false
+        host.bridge.refreshOwner(operation, k)
+    }
+
+    override fun onUpdateTimeout(): Boolean {
+        if (pendingRefresh == null) return false
+        finishRefreshFailure("timeout")
+        return true
+    }
+
+    private fun onRefreshResult(result: OwnerRefreshResult) {
+        if (!isShown || result.operation != pendingRefresh || !OwnerPath.sameKey(key, result.key)) return
+        val payload = result.payload
+        if (result.reason.isNotEmpty() || payload == null) {
+            finishRefreshFailure(result.reason.ifEmpty { "invalid" }, result.detail)
+            return
+        }
+        pendingRefresh = null
+        onPayload(payload)
+        if (payload.header == null) onFreshData()
+    }
+
+    private fun finishRefreshFailure(reason: String, detail: String = "") {
+        pendingRefresh = null
+        val denied = reason == "denied"
+        logWarn("сетевое обновление не выполнено", "отказ VK" to denied, "причина" to reason, "ответ" to detail.ifEmpty { null })
+        // 5.00.16: VK не отказал в доступе - как до 5.00.15: страница присылает свои данные заново. Иначе (отчёт 22.11)
+        // каждое обновление сообщества кончалось ошибкой, и данные страницы больше не считались свежими.
+        if (!denied) {
+            refreshFailed = false
+            logInfo("обновление - данными страницы")
+            requestFresh()
+            return
+        }
+        // Отказ VK (нет доступа к стене) - так и сказать
+        refreshFailed = true
+        onUpdateFailed(R.string.owner_refresh_denied)
+    }
 
     override fun loadSaved() {
         val k = key ?: return
@@ -103,9 +156,13 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
         host.prefetchImages(payload.imageUrls())
         if (payload.header != null || OwnerPath.isFeed(payload.key)) {
             knownKeys += OwnerPath.keyOf(payload.key).lowercase()
-            onFreshData()
+            if (pendingRefresh == null && !refreshFailed) onFreshData(payload.snapshot || payload.needsWallHead)
             // Сохраняем то, что на экране: свежие записи и ещё не догруженные из прежнего сохранения.
             panel.current?.let(host.store::saveOwner)
+        }
+        if (payload.needsWallHead && isShown && host.isOnline && !wallHeadRequested) {
+            logInfo("стена получена с курсором, запрошено начало стены")
+            startUpdate()
         }
         host.onOverlayChanged()
     }
@@ -135,6 +192,9 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
     private fun onOwnerPageChanged(newKey: String?) {
         val previous = key
         key = newKey
+        pendingRefresh = null
+        refreshFailed = false
+        wallHeadRequested = false
         onPageChanged()
         val now = android.os.SystemClock.elapsedRealtime()
         // 4.0, отчёт 16:19: сообщество из списка открывается как /club1, а VK тут же перенаправляет на короткое имя
@@ -218,13 +278,30 @@ class OwnerOverlay(host: OverlayHost, root: View) : PageOverlay(host, R.string.o
             return
         }
         if (host.settings.photoOpensPage && photo.page.isNotEmpty()) {
-            logInfo("фото открыто страницей")
+            val uri = Uri.parse(photo.page)
+            logInfo("фото открыто страницей", "ключ передан" to ("access_key" in uri.queryParameterNames),
+                "параметров" to uri.queryParameterNames.size, "фрагмент" to (uri.fragment != null))
             host.links.openLink(photo.page)
             return
         }
         // Листаются только фото: превью видео ведут на страницу видео, в просмотр им не нужно.
         val stills = gallery.filter { it.open.isEmpty() }
         host.links.openPhotos(stills.map { it.full.ifEmpty { it.url } }, stills.indexOf(photo).coerceAtLeast(0), stills.map { it.page })
+    }
+
+    override val isOnline: Boolean get() = host.isOnline
+
+    /** Запись - своим экраном с комментариями (шторка); нет окна или номера записи - страница сайта, как раньше. */
+    override fun openPost(post: WallPost) {
+        val fallback = { if (post.url.isNotEmpty()) host.links.openLink(post.url) }
+        val activity = context as? android.app.Activity
+        if (activity == null) {
+            fallback()
+            return
+        }
+        com.example.vkweb.comments.CommentsSheet.openPost(
+            activity, com.example.vkweb.comments.CommentTarget.ofPost(post.key), post, this, fallback,
+        )
     }
 
     override fun share(post: WallPost) {

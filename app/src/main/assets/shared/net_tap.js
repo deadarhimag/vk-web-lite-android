@@ -390,8 +390,17 @@
     // Через window.fetch (с перехватом): ответ получат и подписчики — например, окно чтения разберёт историю как обычно.
     var request;
     ownCall = true;
-    try { request = window.fetch(url, { method: 'POST', body: form, credentials: 'include', signal: options && options.signal }); } finally { ownCall = false; }
-    request.then(function (r) { return r.json(); }).then(function (data) {
+    try {
+      request = window.fetch(url, { method: 'POST', body: form, credentials: 'include', signal: options && options.signal,
+        vkSkipPageApi: !!(options && options.skipPageApi) });
+    } finally { ownCall = false; }
+    request.then(function (r) {
+      if (options && options.skipPageApi && !r.ok) {
+        if (r.status === 403) return { error: { error_code: 15 } };
+        throw new Error('HTTP ' + r.status);
+      }
+      return r.json();
+    }).then(function (data) {
       if (data && data.response !== undefined) { done(null, data.response); return; }
       var err = data && data.error;
       if (err && err.error_code === 5 && !retried) {
@@ -426,12 +435,14 @@
       try { captureAuth(typeof input === 'string' ? input : (input && input.url) || '', bodyText(init && init.body)); } catch (e) { /* без данных входа */ }
       var url = typeof input === 'string' ? input : (input && input.url) || '';
       var route = pageEpoch();
+      var skipPageApi = ownCall && init && init.vkSkipPageApi === true;
       notifyRequest(url, 'fetch');
       var result = original.apply(this, arguments);
       var info = describe(url, 'fetch');
       result.then(function (r) {
         var textual = r && isTextResponse(r);
         var targets = (r && r.ok) ? interested(url, 'fetch') : [];
+        if (skipPageApi) targets = targets.filter(function (target) { return !target.samePageApi; });
         responseInfo(url, 'fetch', { status: r ? r.status : 0, mime: header(r && r.headers, 'content-type'),
           size: +header(r && r.headers, 'content-length') || 0, mode: textual ? 'text' : 'binary' });
         if (!textual) targets = targets.filter(function (target) { return target.playlist === true; });

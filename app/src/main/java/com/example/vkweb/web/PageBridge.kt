@@ -206,6 +206,8 @@ class PageBridge(
     /** Свой экран страницы человека/сообщества: [ACTION_MORE] или [ACTION_SYNC]. */
     fun owner(action: String) = call("owner", action)
 
+    fun refreshOwner(operation: String, key: String) = call("owner", "refresh", operation, key)
+
     /** Лайк записи «владелец_номер» на своём экране страницы: поставить ([on]) или снять. Итог — сообщение type = "like". */
     fun ownerLike(postKey: String, on: Boolean) = call("owner", "like", postKey, if (on) "1" else "0")
 

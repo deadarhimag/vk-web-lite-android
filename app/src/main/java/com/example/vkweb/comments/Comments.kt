@@ -74,7 +74,7 @@ data class CommentsPage(
 
         fun fromJson(json: JSONObject): CommentsPage? {
             val id = json.optString("id")
-            if (!VkIds.isMediaId(id)) return null
+            if (!VkIds.isCommentTarget(id)) return null
             val items = parseItems(json.optJSONArray("items"), MAX_ITEMS, nested = false)
             return CommentsPage(
                 videoId = id,
@@ -98,7 +98,7 @@ data class CommentSent(val videoId: String, val ok: Boolean, val reason: String,
 
         fun fromJson(json: JSONObject): CommentSent? {
             val id = json.optString("id")
-            if (!VkIds.isMediaId(id)) return null
+            if (!VkIds.isCommentTarget(id)) return null
             return CommentSent(id, json.optBoolean("ok"), json.optString("reason").take(200), json.optLong("replyTo").coerceAtLeast(0))
         }
     }
@@ -106,6 +106,9 @@ data class CommentSent(val videoId: String, val ok: Boolean, val reason: String,
 
 /** Какое видео или клип показывает страница: «владелец_номер» из её пути. */
 object CommentTarget {
+    /** Комментарии к записи стены: номер записи с буквой «w» (так страница отличает её от ролика); неверный номер - null. */
+    fun ofPost(postKey: String): String? = ("w$postKey").takeIf(VkIds::isCommentTarget)
+
     private val PATH = Regex("^/(?:video|clip)(-?\\d{1,12}_\\d{1,12})(?:[_/?#].*)?$")
 
     /** `/video-1_2`, `/clip-1_2?access_key=…` → «-1_2»; иное — null. */

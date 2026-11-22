@@ -15,6 +15,9 @@ object VkIds {
     /** Номер ролика, клипа, трека, фото: «владелец_номер» («-1_2»). */
     fun isMediaId(value: String?): Boolean = value != null && MEDIA.matches(value)
 
+    /** Номер, к которому пишут комментарии: ролик или клип («-1_2»), запись стены — с буквой «w» («w-1_2»). */
+    fun isCommentTarget(value: String?): Boolean = value != null && COMMENT_TARGET.matches(value)
+
     fun isChat(peer: Long): Boolean = peer >= CHAT_PEER_MIN
 
     fun isChat(peer: String?): Boolean = peer?.toLongOrNull()?.let(::isChat) == true
@@ -24,4 +27,5 @@ object VkIds {
 
     private val PEER = Regex("^-?\\d{1,12}$")
     private val MEDIA = Regex("^-?\\d{1,12}_\\d{1,12}$")
+    private val COMMENT_TARGET = Regex("^w?-?\\d{1,12}_\\d{1,12}$")
 }

@@ -871,7 +871,7 @@ function ownerPage(url) {
     const url = String(input);
     const body = init && init.body != null ? String(init.body) : '';
     w.requests.push({ url, body });
-    const text = w.reply(url, body);
+    const text = await w.reply(url, body);
     return { ok: true, status: 200, headers: { get: (h) => (h === 'content-type' ? 'application/json' : null) },
       clone() { return { text: async () => text }; }, json: async () => JSON.parse(text), text: async () => text };
   };
@@ -884,6 +884,105 @@ const wallResponse = JSON.stringify({ response: { count: 1, items: [{ id: 7, own
   likes: { count: 10, user_likes: 0 }, attachments: [{ type: 'photo', photo: { id: 5, owner_id: -42, access_key: 'ab12',
     sizes: [{ url: 'https://sun9-1.userapi.com/p.jpg', width: 600, height: 400 }] } }] }],
   groups: [{ id: 42, name: 'Клуб', screen_name: 'club42' }] } });
+
+const ownerApi = 'https://web.api.vk.ru/method/owners.getMainTab';
+async function readOwner(w) {
+  w.reply = () => wallResponse;
+  await w.fetch(ownerApi, { method: 'POST', body: 'owner_id=-42&count=10&offset=0&start_from=initial&fields=photo_100&access_token=TKN' });
+  await wait(25);
+  w.__vkLite.owner('sync');
+}
+
+test('сообщество: снимок и успешное сетевое обновление без изменений различаются', async () => {
+  const w = ownerPage('https://m.vk.ru/club42');
+  await readOwner(w);
+  assert.equal(lastOf(w, 'owner').snapshot, true);
+  const before = w.requests.length;
+  assert.equal(w.__vkLite.owner('refresh', '1', '/club42'), true);
+  await wait(35);
+  assert.equal(w.requests.length, before + 1);
+  const args = new URLSearchParams(w.requests.at(-1).body);
+  assert.deepEqual(['owner_id', 'count', 'offset', 'fields'].map(k => args.get(k)), ['-42', '10', '0', 'photo_100']);
+  assert.equal(args.has('start_from'), false, '5.00.16: пустой start_from не передаётся');
+  const result = lastOf(w, 'ownerRefresh');
+  assert.deepEqual([result.operation, result.reason, result.payload.snapshot, result.payload.posts[0].key], ['1', '', false, '-42_7']);
+  w.close();
+});
+
+test('сообщество: стена с курсором отмечена до получения начала со свежими записями', async () => {
+  const w = ownerPage('https://m.vk.ru/club42');
+  await readOwner(w);
+  assert.equal(lastOf(w, 'owner').needsWallHead, true);
+  const head = JSON.parse(wallResponse);
+  head.response.items.unshift({ id: 8, owner_id: -42, from_id: -42, date: 1700300000, text: 'Новый пост' });
+  head.response.count = 2;
+  w.reply = (_url, body) => !new URLSearchParams(body).has('start_from') ? JSON.stringify(head) : wallResponse;
+  assert.equal(w.__vkLite.owner('refresh', '1', '/club42'), true);
+  await wait(35);
+  const result = lastOf(w, 'ownerRefresh').payload;
+  assert.equal(result.needsWallHead, false);
+  assert.deepEqual(result.posts.map(post => post.key), ['-42_8', '-42_7']);
+  w.__vkLite.owner('sync');
+  assert.equal(lastOf(w, 'owner').needsWallHead, false);
+  w.close();
+});
+
+test('сообщество: сетевой сбой и отказ VK оставляют прежний снимок', async () => {
+  const w = ownerPage('https://m.vk.ru/club42');
+  await readOwner(w);
+  w.reply = () => Promise.reject(new Error('connection down'));
+  w.__vkLite.owner('refresh', '1', '/club42');
+  await wait(35);
+  assert.deepEqual([lastOf(w, 'ownerRefresh').reason, lastOf(w, 'ownerRefresh').payload], ['request', null]);
+  assert.ok(lastOf(w, 'ownerRefresh').detail.length > 0, '5.00.16: текст ошибки - для журнала');
+  w.reply = () => JSON.stringify({ error: { error_code: 15, error_msg: 'Access denied' } });
+  w.__vkLite.owner('refresh', '2', '/club42');
+  await wait(35);
+  assert.deepEqual([lastOf(w, 'ownerRefresh').reason, lastOf(w, 'ownerRefresh').payload], ['denied', null]);
+  w.__vkLite.owner('sync');
+  assert.equal(lastOf(w, 'owner').posts[0].key, '-42_7');
+  w.close();
+});
+
+test('сообщество: повторное обновление и смена маршрута отбрасывают запоздалый ответ', async () => {
+  const w = ownerPage('https://m.vk.ru/club42');
+  await readOwner(w);
+  const replies = [];
+  w.reply = () => new Promise(resolve => replies.push(resolve));
+  w.__vkLite.owner('refresh', '1', '/club42');
+  w.__vkLite.owner('refresh', '2', '/club42');
+  const fresh = JSON.parse(wallResponse);
+  fresh.response.items[0].id = 8;
+  replies[1](JSON.stringify(fresh));
+  await wait(25);
+  replies[0](wallResponse);
+  await wait(35);
+  assert.equal(lastOf(w, 'ownerRefresh').operation, '2');
+  w.__vkLite.owner('sync');
+  assert.equal(lastOf(w, 'owner').posts[0].key, '-42_8', 'поздний ответ не обработан и пассивным мостом');
+  w.__vkLite.owner('refresh', '3', '/club42');
+  w.history.pushState(null, '', '/club43');
+  await wait(20);
+  w.history.pushState(null, '', '/club42');
+  replies[2](wallResponse);
+  await wait(35);
+  assert.equal(lastOf(w, 'ownerRefresh').operation, '2');
+  w.close();
+});
+
+test('фото: диагностика сопоставляет цели и скрывает номера, ключи и значения параметров', async () => {
+  const w = ownerPage('https://m.vk.ru/club42');
+  await w.fetch('https://m.vk.ru/photo-42_987654?access_key=PRIVATE123&list=SECRET456');
+  await w.fetch('https://m.vk.ru/club42?z=photo-42_987654%2FSECRET456');
+  await w.fetch('https://m.vk.ru/photo-42_654321?access_key=PRIVATE123');
+  await wait(35);
+  const messages = w.sent.map(JSON.parse).filter(m => m.type === 'log' && m.message.startsWith('маршрут фото:'));
+  assert.ok(messages.some(m => /цель=1, вид=photo.*ключ=true.*HTTP=200/.test(m.message)));
+  assert.ok(messages.some(m => /цель=1, вид=z.*кодирование=true/.test(m.message)));
+  assert.ok(messages.some(m => /цель=2, вид=photo/.test(m.message)));
+  assert.ok(messages.every(m => m.page === '' && !/987654|654321|PRIVATE123|SECRET456/.test(m.message)));
+  w.close();
+});
 
 test('друзья: страница не запросила friends.get (m.vk.ru отдаёт список в вёрстке) — список запросом от её имени', async () => {
   const w = ownerPage('https://m.vk.com/friends');
@@ -962,7 +1061,7 @@ test('страница сообщества: лайк записи — от им
   await wait(300);
   const before = w.sent.map((m) => JSON.parse(m)).filter((m) => m.type === 'owner').pop();
   assert.deepStrictEqual([before.posts[0].likes, before.posts[0].liked], [10, false]);
-  assert.strictEqual(before.posts[0].photos[0].page, '/photo-42_5?access_key=ab12', 'страница фото с ключом');
+  assert.strictEqual(before.posts[0].photos[0].page, '/photo-42_5', 'страница фото сообщества - без ключа (отчёт 22.11, ошибка доступа)');
   assert.strictEqual(w.__vkLite.owner('like', '-42_7', '1'), true);
   await wait(400);
   const call = w.requests.find((r) => r.url.includes('/method/likes.add'));
@@ -3241,4 +3340,40 @@ test('https-адрес — одна проверка для всех скрип�
   }
   // Годится как фильтр массива: лишние аргументы filter не мешают.
   assert.deepStrictEqual(['http://x', 'https://y', 7].filter(w.__vkNetTap.https), ['https://y']);
+});
+
+test('комментарии: запись стены (w-номер) — wall.getComments и wall.createComment, ветка и ответ', async () => {
+  const top = { response: { count: 1, items: [{ id: 11, from_id: 5, date: 1700000000, text: 'Круто', likes: { count: 1 }, thread: { count: 2, items: [] } }],
+    profiles: [{ id: 5, first_name: 'Иван', last_name: 'Петров', photo_100: 'https://sun9-1.userapi.com/a.jpg' }], groups: [] } };
+  const thread = { response: { count: 1, items: [{ id: 21, from_id: 5, date: 1700000100, text: 'Ответ', reply_to_comment: 11, parents_stack: [11] }],
+    profiles: [{ id: 5, first_name: 'Иван', last_name: 'Петров', photo_100: '' }], groups: [] } };
+  const w = apiPage('https://m.vk.ru/club42', '', (u, body) => {
+    if (u.includes('wall.getComments')) return JSON.stringify(/comment_id=11/.test(body) ? thread : top);
+    if (u.includes('wall.createComment')) return '{"response":{"comment_id":30}}';
+    return '';
+  });
+  await authorize(w);
+  assert.strictEqual(w.__vkLite.comments('get', 'w-42_7', '0', '0'), true);
+  await wait(150);
+  const call = w.requests.find((r) => r.url.includes('wall.getComments'));
+  const p = new URLSearchParams(call.body);
+  assert.deepStrictEqual([p.get('owner_id'), p.get('post_id'), p.has('video_id'), p.get('sort')], ['-42', '7', false, 'desc']);
+  const first = lastOf(w, 'comments');
+  assert.strictEqual(first.id, 'w-42_7', 'ключ возвращается с буквой: по нему приложение узнаёт запись');
+  assert.deepStrictEqual([first.ok, first.total, first.items.map((c) => c.text)], [true, 1, ['Круто']]);
+
+  w.__vkLite.comments('get', 'w-42_7', '0', '11');
+  await wait(150);
+  const branch = lastOf(w, 'comments');
+  assert.deepStrictEqual([branch.parent, branch.items.map((c) => c.text)], [11, ['Ответ']]);
+
+  assert.strictEqual(w.__vkLite.comments('send', 'w-42_7', 'Спасибо', '11'), true);
+  await wait(150);
+  const sent = w.requests.find((r) => r.url.includes('wall.createComment'));
+  const q = new URLSearchParams(sent.body);
+  assert.deepStrictEqual([q.get('owner_id'), q.get('post_id'), q.get('message'), q.get('reply_to_comment')], ['-42', '7', 'Спасибо', '11']);
+  const done = lastOf(w, 'commentSent');
+  assert.deepStrictEqual([done.ok, done.id, done.replyTo], [true, 'w-42_7', 11]);
+  assert.strictEqual(w.__vkLite.comments('get', 'wx-1_2', '0'), false);
+  w.close();
 });

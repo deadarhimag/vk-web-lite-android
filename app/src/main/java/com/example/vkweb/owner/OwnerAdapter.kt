@@ -30,7 +30,7 @@ class OwnerAdapter(private val actions: OwnerActions) : ListAdapter<OwnerRow, Re
             TYPE_HEADER -> OwnerHeaderHolder(
                 inflater.inflate(R.layout.item_owner_header, parent, false), actions, expanded,
             )
-            TYPE_POST -> PostHolder(inflater.inflate(R.layout.item_post, parent, false), actions, expanded) { ownerId }
+            TYPE_POST -> PostHolder(inflater.inflate(R.layout.item_post, parent, false), actions, expanded, { ownerId })
             else -> FooterHolder(inflater.inflate(R.layout.item_owner_footer, parent, false))
         }
     }

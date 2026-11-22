@@ -15,11 +15,18 @@ class LikeAndPhotoPageTest {
     }
 
     @Test fun `страница фото сохраняется и читается, чужой адрес отбрасывается`() {
-        val photo = PostPhoto("https://x/p.jpg", 600, 400, "", "", page = "/photo-42_5?access_key=ab12")
+        val photo = PostPhoto("https://x/p.jpg", 600, 400, "", "", page = "/photo7_5?access_key=ab12")
         assertEquals(photo, PostPhoto.fromJson(photo.toJson()))
         val bad = PostPhoto.fromJson(JSONObject("""{"url":"https://x/p.jpg","page":"//evil.example/photo"}"""))!!
         assertEquals("", bad.page)
         val notPhoto = PostPhoto.fromJson(JSONObject("""{"url":"https://x/p.jpg","page":"/settings"}"""))!!
         assertEquals("только страница фото", "", notPhoto.page)
+    }
+
+    @Test fun `у фото сообщества ключ из сохранённой страницы отбрасывается, у фото человека остаётся`() {
+        val community = PostPhoto.fromJson(JSONObject("""{"url":"https://x/p.jpg","page":"/photo-42_5?access_key=ab12"}"""))!!
+        assertEquals("/photo-42_5", community.page)
+        val person = PostPhoto.fromJson(JSONObject("""{"url":"https://x/p.jpg","page":"/photo7_5?access_key=ab12"}"""))!!
+        assertEquals("/photo7_5?access_key=ab12", person.page)
     }
 }
