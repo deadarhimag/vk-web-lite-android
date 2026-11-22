@@ -17,7 +17,7 @@ class VkIdsTest {
         for (v in listOf(null, "", "1", "1_", "_2", "1_2_3", "x_2")) assertFalse(v.toString(), VkIds.isMediaId(v))
     }
 
-    @Test fun `номер для комментариев: ролик или запись стены с буквой w`() {
+    @Test fun `номер для комментариев - ролик или запись стены с буквой w`() {
         for (v in listOf("1_2", "-5_1", "w-42_7", "w1_2")) assertTrue(v, VkIds.isCommentTarget(v))
         for (v in listOf(null, "", "w", "w1", "wx-1_2", "ww1_2", "w-1_2_3", "1_2w")) assertFalse(v.toString(), VkIds.isCommentTarget(v))
         assertFalse("у ролика буквы нет", VkIds.isMediaId("w-42_7"))
