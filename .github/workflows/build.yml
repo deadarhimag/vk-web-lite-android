@@ -3,6 +3,9 @@ name: Build APK
 
 on:
   push:
+    paths-ignore:
+      - 'AGENTS.md'
+      - 'docs/QUALITY_GATES.md'
   workflow_dispatch:
     inputs:
       release:
